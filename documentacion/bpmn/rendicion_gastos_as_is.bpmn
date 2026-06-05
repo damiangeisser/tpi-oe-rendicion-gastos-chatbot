@@ -1,0 +1,631 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" id="Definitions_0o87biy" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Web Modeler" exporterVersion="1d3193f" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.8.0" camunda:diagramRelationId="fb106f6d-8291-4045-83fc-3ca3615685f3">
+  <bpmn:collaboration id="RendicionGastosInternosAsIs" name="Rendicion Gastos Internos As Is">
+    <bpmn:documentation>Proceso administrativo manual mediante el cual un empleado solicita el reintegro de un gasto realizado por su actividad laboral.</bpmn:documentation>
+    <bpmn:participant id="Participant_056nh3b" name="Rendición manual de gastos internos" processRef="ProcesoRendicionManualGastosInternos" />
+    <bpmn:textAnnotation id="TextAnnotation_rendicion_intro">
+      <bpmn:extensionElements />
+      <bpmn:text>Disparado por un empleado que requiere la devolución de un gasto generado por la actividad laboral. El camino feliz es la administración aprobando el gasto y reintegrándole el dinero.</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Association_rendicion_intro" associationDirection="None" sourceRef="EventoInicioReintegroGastoRequerido" targetRef="TextAnnotation_rendicion_intro" />
+  </bpmn:collaboration>
+  <bpmn:process id="ProcesoRendicionManualGastosInternos" name="Rendicion Manual Gastos Internos" isExecutable="true">
+    <bpmn:extensionElements />
+    <bpmn:laneSet id="LaneSet_08mslvx">
+      <bpmn:lane id="Supervisor" name="Supervisor">
+        <bpmn:documentation>Rol responsable de revisar las rendiciones que superan el límite de aprobación directa. Evalúa si la excepción de monto está justificada y comunica su decisión al área administrativa para continuar con el registro y la notificación del resultado.</bpmn:documentation>
+        <bpmn:flowNodeRef>CompuertaLimiteJustificado</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaRevisarSolicitudDerivada</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaAutorizarExcepcionMonto</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaRechazarMontoSolicitud</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaComunicarAutorizacionMonto</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaComunicarRechazoMonto</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Area_Administrativa" name="Área administrativa">
+        <bpmn:documentation>Sector responsable de recibir, revisar, validar, resolver y registrar las rendiciones de gastos presentadas por los empleados.</bpmn:documentation>
+        <bpmn:flowNodeRef>CompuertaMontoDentroLimite</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>CompuertaCategoriaValida</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>CompuertaDatosCompletos</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>CompuertaEmpleadoValidoActivo</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaRecibirRendicion</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaSolicitarCorreccion</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaRevisarDatosObligatorios</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaValidarEmpleado</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaValidarCategoria</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaVerificarLimiteAprobacion</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaAprobarSolicitud</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaDerivarSolicitud</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaConfirmarRecepcionAutorizacionMonto</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaNotificarResultado</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaRechazarSolicitud</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaRegistrarResultado</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaConfirmarRecepcionRechazoMonto</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>CompuertaConvergenteRegistrarResultado</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaGestionarReintegro</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>CompuertaConvergenteGestionarReintegro</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>CompuertaConvergenteRechazoSolicitud</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>CompuertaConvergenteNotificarResultado</bpmn:flowNodeRef>
+        <bpmn:childLaneSet id="LaneSet_1pi6k06" />
+      </bpmn:lane>
+      <bpmn:lane id="Empleado_Solicitante" name="Empleado solicitante">
+        <bpmn:documentation>Rol que inicia el proceso de rendición al solicitar el reintegro de un gasto realizado por su actividad laboral. Es responsable de completar y enviar la rendición, y de tomar conocimiento de la decisión comunicada por el área administrativa.</bpmn:documentation>
+        <bpmn:flowNodeRef>EventoInicioReintegroGastoRequerido</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EventoFinSolicitudResuelta</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaCompletarRendicion</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaEnviarRendicion</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaConfirmarRecepcionDecision</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="EventoInicioReintegroGastoRequerido" name="Reintegro de gasto requerido">
+      <bpmn:documentation>El proceso inicia cuando un empleado requiere recuperar el dinero correspondiente a un gasto realizado por su actividad laboral.</bpmn:documentation>
+      <bpmn:outgoing>Flow_0zz28gx</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:exclusiveGateway id="CompuertaMontoDentroLimite" name="¿Monto dentro del límite?">
+      <bpmn:documentation>Determina si el monto del gasto está dentro del límite establecido para la categoría.</bpmn:documentation>
+      <bpmn:incoming>Flow_0a5r2fi</bpmn:incoming>
+      <bpmn:outgoing>Flow_15cdwlw</bpmn:outgoing>
+      <bpmn:outgoing>Flow_0i3e34x</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="CompuertaCategoriaValida" name="¿Categoría válida?">
+      <bpmn:documentation>Determina si la categoría del gasto puede ser procesada.</bpmn:documentation>
+      <bpmn:incoming>Flow_0tos3lk</bpmn:incoming>
+      <bpmn:outgoing>Flow_1yxg7ek</bpmn:outgoing>
+      <bpmn:outgoing>Flow_12aga9n</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="CompuertaDatosCompletos" name="¿Datos completos?">
+      <bpmn:documentation>Evalúa si la rendición contiene todos los datos requeridos para continuar el proceso.</bpmn:documentation>
+      <bpmn:incoming>Flow_1hnhcbm</bpmn:incoming>
+      <bpmn:outgoing>Flow_11cdt0y</bpmn:outgoing>
+      <bpmn:outgoing>Flow_0x0xgdp</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="CompuertaEmpleadoValidoActivo" name="¿Empleado válido y activo?">
+      <bpmn:documentation>Determina si el empleado está habilitado para presentar una rendición.</bpmn:documentation>
+      <bpmn:incoming>Flow_14irdra</bpmn:incoming>
+      <bpmn:outgoing>Flow_1w5qwps</bpmn:outgoing>
+      <bpmn:outgoing>Flow_1sjrvlv</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="EventoFinSolicitudResuelta" name="Solicitud resuelta">
+      <bpmn:documentation>El proceso finaliza cuando el empleado toma conocimiento del resultado de la rendición presentada.</bpmn:documentation>
+      <bpmn:incoming>Flow_1g1jjd0</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:exclusiveGateway id="CompuertaLimiteJustificado" name="¿Superar el límite está justificado?">
+      <bpmn:incoming>Flow_0etjjpu</bpmn:incoming>
+      <bpmn:outgoing>Flow_1p4q0sz</bpmn:outgoing>
+      <bpmn:outgoing>Flow_15kjq3b</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_0zz28gx" sourceRef="EventoInicioReintegroGastoRequerido" targetRef="TareaCompletarRendicion" />
+    <bpmn:sequenceFlow id="Flow_0c38uje" sourceRef="TareaCompletarRendicion" targetRef="TareaEnviarRendicion" />
+    <bpmn:sequenceFlow id="Flow_10ndbj8" sourceRef="TareaEnviarRendicion" targetRef="TareaRecibirRendicion" />
+    <bpmn:sequenceFlow id="Flow_1b6z9hl" sourceRef="TareaSolicitarCorreccion" targetRef="CompuertaConvergenteNotificarResultado" />
+    <bpmn:sequenceFlow id="Flow_1nv07gq" sourceRef="TareaNotificarResultado" targetRef="TareaConfirmarRecepcionDecision" />
+    <bpmn:sequenceFlow id="Flow_1g1jjd0" sourceRef="TareaConfirmarRecepcionDecision" targetRef="EventoFinSolicitudResuelta" />
+    <bpmn:sequenceFlow id="Flow_1yxg7ek" name="Sí" sourceRef="CompuertaCategoriaValida" targetRef="TareaVerificarLimiteAprobacion">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=categoriaValida = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_0a5r2fi" sourceRef="TareaVerificarLimiteAprobacion" targetRef="CompuertaMontoDentroLimite" />
+    <bpmn:sequenceFlow id="Flow_15cdwlw" name="No" sourceRef="CompuertaMontoDentroLimite" targetRef="TareaDerivarSolicitud">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=montoDentroLimite = false
+</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_0i3e34x" name="Sí" sourceRef="CompuertaMontoDentroLimite" targetRef="TareaAprobarSolicitud">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=montoDentroLimite = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_1qrd7yh" sourceRef="TareaDerivarSolicitud" targetRef="TareaRevisarSolicitudDerivada" />
+    <bpmn:sequenceFlow id="Flow_0uuez6g" sourceRef="TareaAprobarSolicitud" targetRef="CompuertaConvergenteGestionarReintegro" />
+    <bpmn:sequenceFlow id="Flow_1fvo13p" sourceRef="TareaRecibirRendicion" targetRef="TareaRevisarDatosObligatorios" />
+    <bpmn:sequenceFlow id="Flow_0x0xgdp" name="No" sourceRef="CompuertaDatosCompletos" targetRef="TareaSolicitarCorreccion">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=datosCompletos = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_0tos3lk" sourceRef="TareaValidarCategoria" targetRef="CompuertaCategoriaValida" />
+    <bpmn:sequenceFlow id="Flow_12aga9n" name="No" sourceRef="CompuertaCategoriaValida" targetRef="CompuertaConvergenteRechazoSolicitud">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=categoriaValida = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_1w5qwps" name="Sí" sourceRef="CompuertaEmpleadoValidoActivo" targetRef="TareaValidarCategoria">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=empleadoValidoActivo = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_1hnhcbm" sourceRef="TareaRevisarDatosObligatorios" targetRef="CompuertaDatosCompletos" />
+    <bpmn:sequenceFlow id="Flow_11cdt0y" name="Sí" sourceRef="CompuertaDatosCompletos" targetRef="TareaValidarEmpleado">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=datosCompletos = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_14irdra" sourceRef="TareaValidarEmpleado" targetRef="CompuertaEmpleadoValidoActivo" />
+    <bpmn:sequenceFlow id="Flow_1sjrvlv" name="No" sourceRef="CompuertaEmpleadoValidoActivo" targetRef="CompuertaConvergenteRechazoSolicitud">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=empleadoValidoActivo = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_1p4q0sz" name="Sí" sourceRef="CompuertaLimiteJustificado" targetRef="TareaAutorizarExcepcionMonto">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=limiteJustificado = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_0s0jkhk" sourceRef="TareaAutorizarExcepcionMonto" targetRef="TareaComunicarAutorizacionMonto" />
+    <bpmn:sequenceFlow id="Flow_15kjq3b" name="No" sourceRef="CompuertaLimiteJustificado" targetRef="TareaRechazarMontoSolicitud">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=limiteJustificado = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_0w9p78b" sourceRef="TareaRechazarMontoSolicitud" targetRef="TareaComunicarRechazoMonto" />
+    <bpmn:sequenceFlow id="Flow_0etjjpu" sourceRef="TareaRevisarSolicitudDerivada" targetRef="CompuertaLimiteJustificado" />
+    <bpmn:sequenceFlow id="Flow_14prhcz" sourceRef="TareaComunicarAutorizacionMonto" targetRef="TareaConfirmarRecepcionAutorizacionMonto" />
+    <bpmn:sequenceFlow id="Flow_0i6plhz" sourceRef="TareaComunicarRechazoMonto" targetRef="TareaConfirmarRecepcionRechazoMonto" />
+    <bpmn:manualTask id="TareaCompletarRendicion" name="Completar rendición">
+      <bpmn:documentation>El empleado completa la información necesaria para solicitar el reintegro: legajo, categoría, monto, descripción y comprobante si corresponde.</bpmn:documentation>
+      <bpmn:incoming>Flow_0zz28gx</bpmn:incoming>
+      <bpmn:outgoing>Flow_0c38uje</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="TareaEnviarRendicion" name="Enviar rendición">
+      <bpmn:documentation>El empleado envía la rendición al área administrativa mediante correo electrónico, planilla u otro canal manual.</bpmn:documentation>
+      <bpmn:incoming>Flow_0c38uje</bpmn:incoming>
+      <bpmn:outgoing>Flow_10ndbj8</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="TareaRecibirRendicion" name="Recibir rendición">
+      <bpmn:documentation>El área administrativa recibe la rendición enviada por el empleado.</bpmn:documentation>
+      <bpmn:incoming>Flow_10ndbj8</bpmn:incoming>
+      <bpmn:outgoing>Flow_1fvo13p</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="TareaSolicitarCorreccion" name="Solicitar corrección">
+      <bpmn:documentation>El área administrativa solicita al empleado que corrija o complete la información faltante.</bpmn:documentation>
+      <bpmn:incoming>Flow_0x0xgdp</bpmn:incoming>
+      <bpmn:outgoing>Flow_1b6z9hl</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="TareaRevisarDatosObligatorios" name="Revisar datos obligatorios">
+      <bpmn:documentation>El área administrativa revisa si la rendición contiene la información mínima necesaria para ser procesada.</bpmn:documentation>
+      <bpmn:incoming>Flow_1fvo13p</bpmn:incoming>
+      <bpmn:outgoing>Flow_1hnhcbm</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="TareaValidarEmpleado" name="Validar empleado">
+      <bpmn:documentation>El área administrativa verifica si el legajo informado existe y si el empleado se encuentra activo.</bpmn:documentation>
+      <bpmn:incoming>Flow_11cdt0y</bpmn:incoming>
+      <bpmn:outgoing>Flow_14irdra</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="TareaValidarCategoria" name="Validar categoría">
+      <bpmn:documentation>El área administrativa verifica si la categoría informada corresponde a una categoría permitida por la política interna.</bpmn:documentation>
+      <bpmn:incoming>Flow_1w5qwps</bpmn:incoming>
+      <bpmn:outgoing>Flow_0tos3lk</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="TareaVerificarLimiteAprobacion" name="Verificar límite de aprobación">
+      <bpmn:documentation>El área administrativa compara el monto informado con el límite permitido para determinar si la rendición puede aprobarse directamente o debe derivarse al supervisor.</bpmn:documentation>
+      <bpmn:incoming>Flow_1yxg7ek</bpmn:incoming>
+      <bpmn:outgoing>Flow_0a5r2fi</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="TareaAprobarSolicitud" name="Aprobar solicitud">
+      <bpmn:documentation>El área administrativa aprueba la rendición porque cumple con las condiciones internas.</bpmn:documentation>
+      <bpmn:incoming>Flow_0i3e34x</bpmn:incoming>
+      <bpmn:outgoing>Flow_0uuez6g</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="TareaDerivarSolicitud" name="Derivar solicitud">
+      <bpmn:documentation>El área administrativa deriva la solicitud al supervisor porque el monto supera el límite de aprobación directa.</bpmn:documentation>
+      <bpmn:incoming>Flow_15cdwlw</bpmn:incoming>
+      <bpmn:outgoing>Flow_1qrd7yh</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="TareaConfirmarRecepcionAutorizacionMonto" name="Confirmar recepción autorización del monto">
+      <bpmn:documentation>El área administrativa toma conocimiento de la autorización del monto de la solicitud derivada por parte del supervisor.</bpmn:documentation>
+      <bpmn:incoming>Flow_14prhcz</bpmn:incoming>
+      <bpmn:outgoing>Flow_0u83gdv</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="TareaConfirmarRecepcionDecision" name="Confirmar recepción de la decisión">
+      <bpmn:documentation>El empleado toma conocimiento de la decisión comunicada por el área administrativa sobre la rendición presentada.</bpmn:documentation>
+      <bpmn:incoming>Flow_1nv07gq</bpmn:incoming>
+      <bpmn:outgoing>Flow_1g1jjd0</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="TareaRevisarSolicitudDerivada" name="Revisar solicitud derivada">
+      <bpmn:documentation>El supervisor revisa el caso escalado desde área administrativa</bpmn:documentation>
+      <bpmn:incoming>Flow_1qrd7yh</bpmn:incoming>
+      <bpmn:outgoing>Flow_0etjjpu</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="TareaAutorizarExcepcionMonto" name="Autorizar excepción del monto">
+      <bpmn:documentation>El supervisor autoriza el monto excepcional de la solicitud porque la superación del límite está justificada.</bpmn:documentation>
+      <bpmn:incoming>Flow_1p4q0sz</bpmn:incoming>
+      <bpmn:outgoing>Flow_0s0jkhk</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="TareaRechazarMontoSolicitud" name="Rechazar excepción del monto">
+      <bpmn:documentation>El supervisor rechaza el monto excepcional de la solicitud porque la superación del límite no está justificada.</bpmn:documentation>
+      <bpmn:incoming>Flow_15kjq3b</bpmn:incoming>
+      <bpmn:outgoing>Flow_0w9p78b</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="TareaComunicarAutorizacionMonto" name="Comunicar autorización del monto">
+      <bpmn:documentation>El supervisor comunica al área administrativa que el monto de la solicitud fue autorizado ya que la superación del límite está justificada.</bpmn:documentation>
+      <bpmn:incoming>Flow_0s0jkhk</bpmn:incoming>
+      <bpmn:outgoing>Flow_14prhcz</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="TareaComunicarRechazoMonto" name="Comunicar rechazo del monto">
+      <bpmn:documentation>El supervisor comunica al área administrativa que el monto de la solicitud fue rechazado ya que la superación del límite no está justificada.</bpmn:documentation>
+      <bpmn:incoming>Flow_0w9p78b</bpmn:incoming>
+      <bpmn:outgoing>Flow_0i6plhz</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="TareaRechazarSolicitud" name="Rechazar solicitud">
+      <bpmn:documentation>El área administrativa rechaza la rendición porque no cumple las condiciones requeridas para continuar el proceso.</bpmn:documentation>
+      <bpmn:incoming>Flow_1inyc7f</bpmn:incoming>
+      <bpmn:outgoing>Flow_0gk7xr3</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:sequenceFlow id="Flow_0gk7xr3" sourceRef="TareaRechazarSolicitud" targetRef="CompuertaConvergenteRegistrarResultado" />
+    <bpmn:sequenceFlow id="Flow_1inyc7f" sourceRef="CompuertaConvergenteRechazoSolicitud" targetRef="TareaRechazarSolicitud" />
+    <bpmn:manualTask id="TareaNotificarResultado" name="Notificar resultado">
+      <bpmn:documentation>El área administrativa comunica al empleado el resultado final de la rendición.</bpmn:documentation>
+      <bpmn:incoming>Flow_1rvupq9</bpmn:incoming>
+      <bpmn:outgoing>Flow_1nv07gq</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="TareaRegistrarResultado" name="Registrar resultado">
+      <bpmn:documentation>El área administrativa registra el resultado final de la rendición en la planilla o registro correspondiente.</bpmn:documentation>
+      <bpmn:incoming>Flow_17weotc</bpmn:incoming>
+      <bpmn:outgoing>Flow_051o44d</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="TareaConfirmarRecepcionRechazoMonto" name="Confirmar recepción rechazo del monto">
+      <bpmn:documentation>El área administrativa toma conocimiento del rechazo del monto de la solicitud derivada por parte del supervisor.</bpmn:documentation>
+      <bpmn:incoming>Flow_0i6plhz</bpmn:incoming>
+      <bpmn:outgoing>Flow_1ma5fws</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:exclusiveGateway id="CompuertaConvergenteRegistrarResultado">
+      <bpmn:documentation>Unifica los caminos excluyentes que deben registrarse como resultado de la rendición antes de continuar con la notificación al empleado.</bpmn:documentation>
+      <bpmn:incoming>Flow_1ma5fws</bpmn:incoming>
+      <bpmn:incoming>Flow_05eo6oq</bpmn:incoming>
+      <bpmn:incoming>Flow_0gk7xr3</bpmn:incoming>
+      <bpmn:outgoing>Flow_17weotc</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:manualTask id="TareaGestionarReintegro" name="Gestionar reintegro">
+      <bpmn:documentation>El área administrativa gestiona internamente el reintegro correspondiente a una rendición aprobada, dejando constancia de que el gasto debe ser devuelto al empleado.</bpmn:documentation>
+      <bpmn:incoming>Flow_01buxly</bpmn:incoming>
+      <bpmn:outgoing>Flow_05eo6oq</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:sequenceFlow id="Flow_17weotc" sourceRef="CompuertaConvergenteRegistrarResultado" targetRef="TareaRegistrarResultado" />
+    <bpmn:sequenceFlow id="Flow_1ma5fws" sourceRef="TareaConfirmarRecepcionRechazoMonto" targetRef="CompuertaConvergenteRegistrarResultado" />
+    <bpmn:sequenceFlow id="Flow_05eo6oq" sourceRef="TareaGestionarReintegro" targetRef="CompuertaConvergenteRegistrarResultado" />
+    <bpmn:exclusiveGateway id="CompuertaConvergenteGestionarReintegro">
+      <bpmn:documentation>Unifica los caminos excluyentes que derivan en un reintegro aprobado antes de continuar con la gestión administrativa del pago al empleado.</bpmn:documentation>
+      <bpmn:incoming>Flow_0uuez6g</bpmn:incoming>
+      <bpmn:incoming>Flow_0u83gdv</bpmn:incoming>
+      <bpmn:outgoing>Flow_01buxly</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_01buxly" sourceRef="CompuertaConvergenteGestionarReintegro" targetRef="TareaGestionarReintegro" />
+    <bpmn:sequenceFlow id="Flow_0u83gdv" sourceRef="TareaConfirmarRecepcionAutorizacionMonto" targetRef="CompuertaConvergenteGestionarReintegro" />
+    <bpmn:exclusiveGateway id="CompuertaConvergenteRechazoSolicitud">
+      <bpmn:documentation>Unifica los caminos excluyentes que derivan en el rechazo de la solicitud antes de continuar con el registro y la notificación del resultado.</bpmn:documentation>
+      <bpmn:incoming>Flow_12aga9n</bpmn:incoming>
+      <bpmn:incoming>Flow_1sjrvlv</bpmn:incoming>
+      <bpmn:outgoing>Flow_1inyc7f</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="CompuertaConvergenteNotificarResultado">
+      <bpmn:documentation>Unifica los caminos excluyentes que deben notificarse al empleado.</bpmn:documentation>
+      <bpmn:incoming>Flow_1b6z9hl</bpmn:incoming>
+      <bpmn:incoming>Flow_051o44d</bpmn:incoming>
+      <bpmn:outgoing>Flow_1rvupq9</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_1rvupq9" sourceRef="CompuertaConvergenteNotificarResultado" targetRef="TareaNotificarResultado" />
+    <bpmn:sequenceFlow id="Flow_051o44d" sourceRef="TareaRegistrarResultado" targetRef="CompuertaConvergenteNotificarResultado" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="RendicionGastosInternosAsIs">
+      <bpmndi:BPMNShape id="Participant_056nh3b_di" bpmnElement="Participant_056nh3b" isHorizontal="true">
+        <dc:Bounds x="159" y="160" width="1961" height="1190" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_1ph4b7j_di" bpmnElement="Supervisor" isHorizontal="true">
+        <dc:Bounds x="189" y="1050" width="1931" height="300" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_0dur4gj_di" bpmnElement="Area_Administrativa" isHorizontal="true">
+        <dc:Bounds x="189" y="510" width="1931" height="540" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_0jbpf0w_di" bpmnElement="Empleado_Solicitante" isHorizontal="true">
+        <dc:Bounds x="189" y="160" width="1931" height="350" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="EventoInicioReintegroGastoRequerido">
+        <dc:Bounds x="242" y="232" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="223" y="276" width="77" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_12trtto_di" bpmnElement="CompuertaMontoDentroLimite" isMarkerVisible="true">
+        <dc:Bounds x="1181" y="915" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1161" y="975" width="90" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0szpazg_di" bpmnElement="CompuertaCategoriaValida" isMarkerVisible="true">
+        <dc:Bounds x="1045" y="805" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="979" y="816" width="56" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_18zcgew_di" bpmnElement="CompuertaDatosCompletos" isMarkerVisible="true">
+        <dc:Bounds x="637" y="695" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="633.5" y="754.5" width="57" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1co09cq_di" bpmnElement="CompuertaEmpleadoValidoActivo" isMarkerVisible="true">
+        <dc:Bounds x="909" y="695" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="890" y="752" width="89" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_02m7n8y_di" bpmnElement="EventoFinSolicitudResuelta">
+        <dc:Bounds x="1792" y="372" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1768" y="415" width="84" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0t3xno0_di" bpmnElement="CompuertaLimiteJustificado" isMarkerVisible="true">
+        <dc:Bounds x="637" y="1225" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="619" y="1282" width="87" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1qdvckk_di" bpmnElement="TareaCompletarRendicion">
+        <dc:Bounds x="320" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1nu3mqk_di" bpmnElement="TareaEnviarRendicion">
+        <dc:Bounds x="320" y="350" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1rcoq62_di" bpmnElement="TareaRecibirRendicion">
+        <dc:Bounds x="476" y="540" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0zb03b0_di" bpmnElement="TareaSolicitarCorreccion">
+        <dc:Bounds x="612" y="540" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0unk1s5_di" bpmnElement="TareaRevisarDatosObligatorios">
+        <dc:Bounds x="476" y="680" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1ep7nwu_di" bpmnElement="TareaValidarEmpleado">
+        <dc:Bounds x="748" y="680" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1790bhu_di" bpmnElement="TareaValidarCategoria">
+        <dc:Bounds x="1020" y="680" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1yoywwp_di" bpmnElement="TareaVerificarLimiteAprobacion">
+        <dc:Bounds x="1020" y="900" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0zjor63_di" bpmnElement="TareaAprobarSolicitud">
+        <dc:Bounds x="1292" y="790" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1l8z4p1_di" bpmnElement="TareaDerivarSolicitud">
+        <dc:Bounds x="1292" y="900" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0tcd8ih_di" bpmnElement="TareaConfirmarRecepcionAutorizacionMonto">
+        <dc:Bounds x="1453" y="900" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1xlnli0_di" bpmnElement="TareaNotificarResultado">
+        <dc:Bounds x="1610" y="540" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1x0xehh_di" bpmnElement="TareaConfirmarRecepcionDecision">
+        <dc:Bounds x="1610" y="350" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1fb0ed7_di" bpmnElement="TareaRevisarSolicitudDerivada">
+        <dc:Bounds x="476" y="1210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0zxik0z_di" bpmnElement="TareaAutorizarExcepcionMonto">
+        <dc:Bounds x="748" y="1080" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0vjap39_di" bpmnElement="TareaRechazarMontoSolicitud">
+        <dc:Bounds x="748" y="1210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0zbos30_di" bpmnElement="TareaComunicarAutorizacionMonto">
+        <dc:Bounds x="1020" y="1080" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1nti5h7_di" bpmnElement="TareaComunicarRechazoMonto">
+        <dc:Bounds x="1020" y="1210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0jlilb2_di" bpmnElement="TareaRechazarSolicitud">
+        <dc:Bounds x="1453" y="680" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1cs6ycs_di" bpmnElement="TareaRegistrarResultado">
+        <dc:Bounds x="1897" y="680" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1rbujl0_di" bpmnElement="TareaConfirmarRecepcionRechazoMonto">
+        <dc:Bounds x="1767" y="900" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1nmnb72_di" bpmnElement="CompuertaConvergenteRegistrarResultado" isMarkerVisible="true">
+        <dc:Bounds x="1792" y="805" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_13sfx0a_di" bpmnElement="TareaGestionarReintegro">
+        <dc:Bounds x="1610" y="790" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0m6qp2t_di" bpmnElement="CompuertaConvergenteGestionarReintegro" isMarkerVisible="true">
+        <dc:Bounds x="1478" y="805" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0r00h7p_di" bpmnElement="CompuertaConvergenteRechazoSolicitud" isMarkerVisible="true">
+        <dc:Bounds x="1317" y="695" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0ihxasb_di" bpmnElement="CompuertaConvergenteNotificarResultado" isMarkerVisible="true">
+        <dc:Bounds x="1478" y="555" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_0zz28gx_di" bpmnElement="Flow_0zz28gx">
+        <di:waypoint x="278" y="250" />
+        <di:waypoint x="320" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0c38uje_di" bpmnElement="Flow_0c38uje">
+        <di:waypoint x="370" y="290" />
+        <di:waypoint x="370" y="350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_10ndbj8_di" bpmnElement="Flow_10ndbj8">
+        <di:waypoint x="370" y="430" />
+        <di:waypoint x="370" y="580" />
+        <di:waypoint x="476" y="580" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0gk7xr3_di" bpmnElement="Flow_0gk7xr3">
+        <di:waypoint x="1553" y="720" />
+        <di:waypoint x="1817" y="720" />
+        <di:waypoint x="1817" y="805" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1b6z9hl_di" bpmnElement="Flow_1b6z9hl">
+        <di:waypoint x="712" y="580" />
+        <di:waypoint x="1478" y="580" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1nv07gq_di" bpmnElement="Flow_1nv07gq">
+        <di:waypoint x="1660" y="540" />
+        <di:waypoint x="1660" y="430" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1g1jjd0_di" bpmnElement="Flow_1g1jjd0">
+        <di:waypoint x="1710" y="390" />
+        <di:waypoint x="1792" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1yxg7ek_di" bpmnElement="Flow_1yxg7ek">
+        <di:waypoint x="1070" y="855" />
+        <di:waypoint x="1070" y="900" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1076" y="873" width="11" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0a5r2fi_di" bpmnElement="Flow_0a5r2fi">
+        <di:waypoint x="1120" y="940" />
+        <di:waypoint x="1181" y="940" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_15cdwlw_di" bpmnElement="Flow_15cdwlw">
+        <di:waypoint x="1231" y="940" />
+        <di:waypoint x="1292" y="940" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1254" y="922" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0i3e34x_di" bpmnElement="Flow_0i3e34x">
+        <di:waypoint x="1206" y="915" />
+        <di:waypoint x="1206" y="830" />
+        <di:waypoint x="1292" y="830" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1216" y="871.5" width="11" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1qrd7yh_di" bpmnElement="Flow_1qrd7yh">
+        <di:waypoint x="1342" y="980" />
+        <di:waypoint x="1342" y="1030" />
+        <di:waypoint x="526" y="1030" />
+        <di:waypoint x="526" y="1210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0uuez6g_di" bpmnElement="Flow_0uuez6g">
+        <di:waypoint x="1392" y="830" />
+        <di:waypoint x="1478" y="830" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1fvo13p_di" bpmnElement="Flow_1fvo13p">
+        <di:waypoint x="526" y="620" />
+        <di:waypoint x="526" y="680" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0x0xgdp_di" bpmnElement="Flow_0x0xgdp">
+        <di:waypoint x="662" y="695" />
+        <di:waypoint x="662" y="620" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="670" y="654.5" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0tos3lk_di" bpmnElement="Flow_0tos3lk">
+        <di:waypoint x="1070" y="760" />
+        <di:waypoint x="1070" y="805" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_12aga9n_di" bpmnElement="Flow_12aga9n">
+        <di:waypoint x="1095" y="830" />
+        <di:waypoint x="1160" y="830" />
+        <di:waypoint x="1160" y="720" />
+        <di:waypoint x="1316" y="720" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1114" y="813" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1w5qwps_di" bpmnElement="Flow_1w5qwps">
+        <di:waypoint x="959" y="720" />
+        <di:waypoint x="1020" y="720" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="985" y="702" width="11" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1hnhcbm_di" bpmnElement="Flow_1hnhcbm">
+        <di:waypoint x="576" y="720" />
+        <di:waypoint x="637" y="720" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_11cdt0y_di" bpmnElement="Flow_11cdt0y">
+        <di:waypoint x="687" y="720" />
+        <di:waypoint x="748" y="720" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="713" y="702" width="11" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_14irdra_di" bpmnElement="Flow_14irdra">
+        <di:waypoint x="848" y="720" />
+        <di:waypoint x="909" y="720" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1sjrvlv_di" bpmnElement="Flow_1sjrvlv">
+        <di:waypoint x="934" y="695" />
+        <di:waypoint x="934" y="620" />
+        <di:waypoint x="1342" y="620" />
+        <di:waypoint x="1342" y="695" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="942" y="663.5" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1p4q0sz_di" bpmnElement="Flow_1p4q0sz">
+        <di:waypoint x="662" y="1225" />
+        <di:waypoint x="662" y="1120" />
+        <di:waypoint x="748" y="1120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="672" y="1169.5" width="11" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0s0jkhk_di" bpmnElement="Flow_0s0jkhk">
+        <di:waypoint x="848" y="1120" />
+        <di:waypoint x="1020" y="1120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_15kjq3b_di" bpmnElement="Flow_15kjq3b">
+        <di:waypoint x="687" y="1250" />
+        <di:waypoint x="748" y="1250" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="710" y="1232" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0w9p78b_di" bpmnElement="Flow_0w9p78b">
+        <di:waypoint x="848" y="1250" />
+        <di:waypoint x="1020" y="1250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0etjjpu_di" bpmnElement="Flow_0etjjpu">
+        <di:waypoint x="576" y="1250" />
+        <di:waypoint x="637" y="1250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_14prhcz_di" bpmnElement="Flow_14prhcz">
+        <di:waypoint x="1120" y="1120" />
+        <di:waypoint x="1503" y="1120" />
+        <di:waypoint x="1503" y="980" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0i6plhz_di" bpmnElement="Flow_0i6plhz">
+        <di:waypoint x="1120" y="1250" />
+        <di:waypoint x="1817" y="1250" />
+        <di:waypoint x="1817" y="980" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1inyc7f_di" bpmnElement="Flow_1inyc7f">
+        <di:waypoint x="1367" y="720" />
+        <di:waypoint x="1453" y="720" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_17weotc_di" bpmnElement="Flow_17weotc">
+        <di:waypoint x="1842" y="830" />
+        <di:waypoint x="1947" y="830" />
+        <di:waypoint x="1947" y="760" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1ma5fws_di" bpmnElement="Flow_1ma5fws">
+        <di:waypoint x="1817" y="900" />
+        <di:waypoint x="1817" y="855" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_05eo6oq_di" bpmnElement="Flow_05eo6oq">
+        <di:waypoint x="1710" y="830" />
+        <di:waypoint x="1792" y="830" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_01buxly_di" bpmnElement="Flow_01buxly">
+        <di:waypoint x="1528" y="830" />
+        <di:waypoint x="1610" y="830" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0u83gdv_di" bpmnElement="Flow_0u83gdv">
+        <di:waypoint x="1503" y="900" />
+        <di:waypoint x="1503" y="855" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1rvupq9_di" bpmnElement="Flow_1rvupq9">
+        <di:waypoint x="1528" y="580" />
+        <di:waypoint x="1610" y="580" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_051o44d_di" bpmnElement="Flow_051o44d">
+        <di:waypoint x="1947" y="680" />
+        <di:waypoint x="1947" y="660" />
+        <di:waypoint x="1503" y="660" />
+        <di:waypoint x="1503" y="605" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Association_rendicion_intro_di" bpmnElement="Association_rendicion_intro">
+        <di:waypoint x="260" y="232" />
+        <di:waypoint x="260" y="152" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="TextAnnotation_rendicion_intro_di" bpmnElement="TextAnnotation_rendicion_intro">
+        <dc:Bounds x="170" y="80" width="294" height="72" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

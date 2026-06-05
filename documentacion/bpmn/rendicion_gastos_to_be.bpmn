@@ -1,0 +1,1208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" id="Definitions_0o87biy" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Web Modeler" exporterVersion="1d3193f" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.8.0" camunda:diagramRelationId="fb106f6d-8291-4045-83fc-3ca3615685f3">
+  <bpmn:collaboration id="RendicionGastosInternosToBe" name="Rendicion Gastos Internos To Be">
+    <bpmn:documentation>Disparado por un empleado que requiere la devolución de un gasto generado por su actividad laboral. El camino feliz es que el chatbot valide la solicitud, registre la rendición, apruebe el reintegro automáticamente y notifique la decisión al empleado.</bpmn:documentation>
+    <bpmn:participant id="Participant_056nh3b" name="Rendición de gastos internos mediante chatbot" processRef="Process_yvwxgi5">
+      <bpmn:documentation>Proceso optimizado de rendición de gastos internos implementado mediante un chatbot de Telegram, con validaciones automáticas, persistencia en SQLite y derivación a supervisor cuando el monto supera el límite de aprobación automática.</bpmn:documentation>
+    </bpmn:participant>
+    <bpmn:textAnnotation id="TextAnnotation_rendicion_intro">
+      <bpmn:extensionElements />
+      <bpmn:text>Disparado por un empleado que requiere la devolución de un gasto generado por su actividad laboral. El camino feliz es que el chatbot valide la solicitud, registre la rendición, apruebe el reintegro automáticamente y notifique la decisión al empleado.</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Association_rendicion_intro" associationDirection="None" sourceRef="EventoInicioReintegroGastoRequerido" targetRef="TextAnnotation_rendicion_intro" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_yvwxgi5" name="Rendición de gastos internos mediante chatbot" isExecutable="true">
+    <bpmn:extensionElements />
+    <bpmn:laneSet id="LaneSet_08mslvx">
+      <bpmn:lane id="Empleado_Solicitante" name="Empleado solicitante">
+        <bpmn:documentation>Rol que inicia el proceso de rendición mediante Telegram. Es responsable de ingresar los datos solicitados por el chatbot, seleccionar la categoría del gasto, informar el monto, enviar el comprobante y tomar conocimiento de la decisión comunicada por el sistema.</bpmn:documentation>
+        <bpmn:flowNodeRef>EventoInicioReintegroGastoRequerido</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaIniciarSolicitud</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaIngresarLegajo</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaSeleccionarCategoria</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaIngresarFecha</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>CompuertaConvergenteIngresarFecha</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaIngresarMonto</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>CompuertaConvergenteIngresarMonto</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaEnviarComprobante</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>CompuertaConvergenteEnviarComprobante</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Sistema_Chatbot" name="Sistema / Chatbot">
+        <bpmn:documentation>Componente automatizado que guía al empleado durante la carga de la rendición, valida los datos ingresados, consulta la base de datos SQLite, aplica reglas de negocio, registra la solicitud y comunica la decisión final.</bpmn:documentation>
+        <bpmn:flowNodeRef>CompuertaFechaValida</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaSolicitarCorreccionFecha</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaIncrementarIntentosFecha</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaSolicitarMonto</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaValidarFormatoMonto</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaIncrementarIntentosMonto</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EventoFinSolicitudResuelta</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaNotificarDecision</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaRegistrarComprobanteEnviado</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>CompuertaComprobanteValido</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaSolicitarCorreccionComprobante</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaIncrementarIntentosComprobante</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaSolicitarComprobante</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaRegistrarMontoIngresado</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>CompuertaMontoValido</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>CompuertaConvergenteCancelarSolicitud</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaCancelarSolicitud</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaNotificarCancelacion</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EventoFinSolicitudCancelada</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>CompuertaIntentosComprobanteDisponibles</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaValidarComprobante</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaSolicitarCorreccionMonto</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>CompuertaIntentosMontoDisponibles</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaValidarFormatoFecha</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>CompuertaIntentosFechaDisponibles</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaSolicitarFecha</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaRegistrarCategoriaSeleccionada</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaMostrarCategoriasDisponibles</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaRegistrarLegajoIngresado</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>CompuertaEmpleadoValidoActivo</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaValidarEmpleado</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaSolicitarLegajo</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaConsultarPoliticaGastos</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaVerificarLimiteAprobacion</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>CompuertaMontoDentroLimite</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaAprobarSolicitud</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>CompuertaConvergenteGestionarReintegro</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaGestionarReintegro</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>CompuertaConvergenteRegistrarResultado</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaRegistrarResultado</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaDerivarSolicitud</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaInformarDerivacionSolicitud</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaRegistrarAutorizacionExcepcion</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaRegistrarRechazoExcepcion</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Supervisor" name="Supervisor">
+        <bpmn:documentation>Rol responsable de revisar las rendiciones cuyo monto supera el límite de aprobación automática. Evalúa si la excepción está justificada y comunica su decisión al sistema para continuar con la aprobación, rechazo, registro y notificación correspondiente.</bpmn:documentation>
+        <bpmn:flowNodeRef>CompuertaLimiteJustificado</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaAutorizarExcepcionMonto</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaRechazarMontoSolicitud</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TareaRevisarSolicitudDerivada</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="EventoInicioReintegroGastoRequerido" name="Reintegro de gasto requerido">
+      <bpmn:documentation>El proceso inicia cuando un empleado requiere recuperar el dinero correspondiente a un gasto realizado por su actividad laboral.</bpmn:documentation>
+      <bpmn:outgoing>Flow_0zz28gx</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="TareaIniciarSolicitud" name="Iniciar solicitud">
+      <bpmn:documentation>El empleado inicia la interacción con el chatbot de Telegram para comenzar una nueva solicitud de reintegro de gastos.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <zeebe:formDefinition externalReference="Form_08kwcf5" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0zz28gx</bpmn:incoming>
+      <bpmn:outgoing>Flow_1qnrm7v</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_1qnrm7v" sourceRef="TareaIniciarSolicitud" targetRef="TareaSolicitarLegajo" />
+    <bpmn:sequenceFlow id="Flow_05hw2sd" sourceRef="TareaSolicitarLegajo" targetRef="TareaIngresarLegajo" />
+    <bpmn:sequenceFlow id="Flow_07yly08" sourceRef="TareaIngresarLegajo" targetRef="TareaValidarEmpleado" />
+    <bpmn:sequenceFlow id="Flow_0013c1z" sourceRef="TareaValidarEmpleado" targetRef="CompuertaEmpleadoValidoActivo" />
+    <bpmn:sequenceFlow id="Flow_0fgqbfk" name="Sí" sourceRef="CompuertaEmpleadoValidoActivo" targetRef="TareaRegistrarLegajoIngresado">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=empleadoValidoActivo = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_1h5p819" name="No" sourceRef="CompuertaEmpleadoValidoActivo" targetRef="CompuertaConvergenteCancelarSolicitud">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=empleadoValidoActivo = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_1btyi7d" sourceRef="TareaRegistrarLegajoIngresado" targetRef="TareaMostrarCategoriasDisponibles" />
+    <bpmn:sequenceFlow id="Flow_0sa7c3t" sourceRef="TareaMostrarCategoriasDisponibles" targetRef="TareaSeleccionarCategoria" />
+    <bpmn:sequenceFlow id="Flow_1ui6wu9" sourceRef="TareaSeleccionarCategoria" targetRef="TareaRegistrarCategoriaSeleccionada" />
+    <bpmn:sequenceFlow id="Flow_1rn5sba" sourceRef="TareaRegistrarCategoriaSeleccionada" targetRef="TareaSolicitarFecha" />
+    <bpmn:sequenceFlow id="Flow_0zz28gx" sourceRef="EventoInicioReintegroGastoRequerido" targetRef="TareaIniciarSolicitud" />
+    <bpmn:sequenceFlow id="Flow_0phjijk" sourceRef="CompuertaConvergenteEnviarComprobante" targetRef="TareaEnviarComprobante" />
+    <bpmn:sequenceFlow id="Flow_1rnt15v" sourceRef="TareaEnviarComprobante" targetRef="TareaValidarComprobante" />
+    <bpmn:sequenceFlow id="Flow_08npi80" sourceRef="TareaSolicitarCorreccionComprobante" targetRef="CompuertaConvergenteEnviarComprobante" />
+    <bpmn:sequenceFlow id="Flow_1uie5sz" sourceRef="TareaSolicitarComprobante" targetRef="CompuertaConvergenteEnviarComprobante" />
+    <bpmn:sequenceFlow id="Flow_03ms5y4" sourceRef="CompuertaConvergenteIngresarMonto" targetRef="TareaIngresarMonto" />
+    <bpmn:sequenceFlow id="Flow_00jq6nr" sourceRef="TareaIngresarMonto" targetRef="TareaValidarFormatoMonto" />
+    <bpmn:sequenceFlow id="Flow_1k0v1i4" sourceRef="TareaSolicitarCorreccionMonto" targetRef="CompuertaConvergenteIngresarMonto" />
+    <bpmn:sequenceFlow id="Flow_1maxauy" sourceRef="TareaSolicitarMonto" targetRef="CompuertaConvergenteIngresarMonto" />
+    <bpmn:sequenceFlow id="Flow_1qi9n1i" sourceRef="TareaValidarFormatoMonto" targetRef="CompuertaMontoValido" />
+    <bpmn:sequenceFlow id="Flow_0nnhjvb" sourceRef="TareaValidarComprobante" targetRef="CompuertaComprobanteValido" />
+    <bpmn:sequenceFlow id="Flow_0swkptc" sourceRef="TareaInformarDerivacionSolicitud" targetRef="TareaRevisarSolicitudDerivada" />
+    <bpmn:sequenceFlow id="Flow_0s0jkhk" sourceRef="TareaAutorizarExcepcionMonto" targetRef="TareaRegistrarAutorizacionExcepcion" />
+    <bpmn:sequenceFlow id="Flow_0w9p78b" sourceRef="TareaRechazarMontoSolicitud" targetRef="TareaRegistrarRechazoExcepcion" />
+    <bpmn:sequenceFlow id="Flow_1eqckj2" sourceRef="TareaSolicitarFecha" targetRef="CompuertaConvergenteIngresarFecha" />
+    <bpmn:sequenceFlow id="Flow_1j7xofo" sourceRef="CompuertaConvergenteIngresarFecha" targetRef="TareaIngresarFecha" />
+    <bpmn:sequenceFlow id="Flow_1faw0ya" sourceRef="TareaIngresarFecha" targetRef="TareaValidarFormatoFecha" />
+    <bpmn:sequenceFlow id="Flow_014olzz" sourceRef="TareaValidarFormatoFecha" targetRef="CompuertaFechaValida" />
+    <bpmn:sequenceFlow id="Flow_164d686" name="Sí" sourceRef="CompuertaMontoValido" targetRef="TareaRegistrarMontoIngresado">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=montoValido = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_15sgbwb" name="No" sourceRef="CompuertaMontoValido" targetRef="TareaIncrementarIntentosMonto">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=montoValido = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_1n0wlnb" name="No" sourceRef="CompuertaComprobanteValido" targetRef="TareaIncrementarIntentosComprobante">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=comprobanteValido = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_1emswjq" name="Sí" sourceRef="CompuertaComprobanteValido" targetRef="TareaRegistrarComprobanteEnviado">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=comprobanteValido = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_0ke0xq3" sourceRef="TareaRegistrarMontoIngresado" targetRef="TareaSolicitarComprobante" />
+    <bpmn:sequenceFlow id="Flow_1hvqlva" sourceRef="TareaRegistrarComprobanteEnviado" targetRef="TareaConsultarPoliticaGastos" />
+    <bpmn:sequenceFlow id="Flow_1plohj6" sourceRef="TareaRegistrarResultado" targetRef="TareaNotificarDecision" />
+    <bpmn:sequenceFlow id="Flow_0zrap3z" sourceRef="TareaNotificarDecision" targetRef="EventoFinSolicitudResuelta" />
+    <bpmn:sequenceFlow id="Flow_0f200y6" name="Sí" sourceRef="CompuertaFechaValida" targetRef="TareaSolicitarMonto">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=fechaValida = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_0sjoafd" sourceRef="TareaIncrementarIntentosMonto" targetRef="CompuertaIntentosMontoDisponibles" />
+    <bpmn:sequenceFlow id="Flow_0eh4zxl" name="Sí" sourceRef="CompuertaIntentosMontoDisponibles" targetRef="TareaSolicitarCorreccionMonto">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=intentosMontoDisponibles = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_1q2hkn3" sourceRef="CompuertaConvergenteCancelarSolicitud" targetRef="TareaCancelarSolicitud" />
+    <bpmn:sequenceFlow id="Flow_09v3697" sourceRef="TareaCancelarSolicitud" targetRef="TareaNotificarCancelacion" />
+    <bpmn:sequenceFlow id="Flow_0gebyw6" sourceRef="TareaNotificarCancelacion" targetRef="EventoFinSolicitudCancelada" />
+    <bpmn:sequenceFlow id="Flow_018zb2o" name="No" sourceRef="CompuertaIntentosMontoDisponibles" targetRef="CompuertaConvergenteCancelarSolicitud">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=intentosMontoDisponibles = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_0w50w2s" name="No" sourceRef="CompuertaFechaValida" targetRef="TareaIncrementarIntentosFecha">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=fechaValida = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_0xb4t3q" sourceRef="TareaIncrementarIntentosFecha" targetRef="CompuertaIntentosFechaDisponibles" />
+    <bpmn:sequenceFlow id="Flow_0hlz7ca" name="Sí" sourceRef="CompuertaIntentosFechaDisponibles" targetRef="TareaSolicitarCorreccionFecha">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=intentosFechaDisponibles = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_0lzigb8" sourceRef="TareaSolicitarCorreccionFecha" targetRef="CompuertaConvergenteIngresarFecha" />
+    <bpmn:sequenceFlow id="Flow_1rhutmm" name="No" sourceRef="CompuertaIntentosFechaDisponibles" targetRef="CompuertaConvergenteCancelarSolicitud">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=intentosFechaDisponibles = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_1ma5fws" sourceRef="TareaRegistrarRechazoExcepcion" targetRef="CompuertaConvergenteRegistrarResultado" />
+    <bpmn:sequenceFlow id="Flow_05eo6oq" sourceRef="TareaGestionarReintegro" targetRef="CompuertaConvergenteRegistrarResultado" />
+    <bpmn:sequenceFlow id="Flow_17weotc" sourceRef="CompuertaConvergenteRegistrarResultado" targetRef="TareaRegistrarResultado" />
+    <bpmn:sequenceFlow id="Flow_0uuez6g" sourceRef="TareaAprobarSolicitud" targetRef="CompuertaConvergenteGestionarReintegro" />
+    <bpmn:sequenceFlow id="Flow_0u83gdv" sourceRef="TareaRegistrarAutorizacionExcepcion" targetRef="CompuertaConvergenteGestionarReintegro" />
+    <bpmn:sequenceFlow id="Flow_01buxly" sourceRef="CompuertaConvergenteGestionarReintegro" targetRef="TareaGestionarReintegro" />
+    <bpmn:sequenceFlow id="Flow_018su25" sourceRef="TareaVerificarLimiteAprobacion" targetRef="CompuertaMontoDentroLimite" />
+    <bpmn:sequenceFlow id="Flow_0i3e34x" name="Sí" sourceRef="CompuertaMontoDentroLimite" targetRef="TareaAprobarSolicitud">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=montoDentroLimite = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_1vbyc7g" name="No" sourceRef="CompuertaMontoDentroLimite" targetRef="TareaDerivarSolicitud">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=montoDentroLimite = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_1c1whwu" sourceRef="TareaDerivarSolicitud" targetRef="TareaInformarDerivacionSolicitud" />
+    <bpmn:sequenceFlow id="Flow_09ijfd8" sourceRef="TareaConsultarPoliticaGastos" targetRef="TareaVerificarLimiteAprobacion" />
+    <bpmn:sequenceFlow id="Flow_0ku26ym" sourceRef="TareaIncrementarIntentosComprobante" targetRef="CompuertaIntentosComprobanteDisponibles" />
+    <bpmn:sequenceFlow id="Flow_1bjhrpm" name="Sí" sourceRef="CompuertaIntentosComprobanteDisponibles" targetRef="TareaSolicitarCorreccionComprobante">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=intentosComprobanteDisponibles = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_0arcdzg" name="No" sourceRef="CompuertaIntentosComprobanteDisponibles" targetRef="CompuertaConvergenteCancelarSolicitud">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=intentosComprobanteDisponibles = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:userTask id="TareaIngresarLegajo" name="Ingresar legajo">
+      <bpmn:documentation>El empleado ingresa su legajo en Telegram para identificarse ante el chatbot.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <zeebe:formDefinition externalReference="Form_0ckxbxu" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_05hw2sd</bpmn:incoming>
+      <bpmn:outgoing>Flow_07yly08</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="TareaSeleccionarCategoria" name="Seleccionar categoría">
+      <bpmn:documentation>El empleado selecciona desde el menú del chatbot la categoría correspondiente al gasto a rendir.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <zeebe:formDefinition externalReference="Form_0d95nuq" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0sa7c3t</bpmn:incoming>
+      <bpmn:outgoing>Flow_1ui6wu9</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="TareaIngresarFecha" name="Ingresar fecha">
+      <bpmn:documentation>El empleado ingresa la fecha en la que fue realizado el gasto correspondiente a la rendición.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <zeebe:formDefinition externalReference="Form_0xbqvi2" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1j7xofo</bpmn:incoming>
+      <bpmn:outgoing>Flow_1faw0ya</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="CompuertaFechaValida" name="¿Fecha válida?">
+      <bpmn:documentation>Evalúa si la fecha ingresada por el empleado tiene un formato válido para continuar con la rendición.</bpmn:documentation>
+      <bpmn:incoming>Flow_014olzz</bpmn:incoming>
+      <bpmn:outgoing>Flow_0f200y6</bpmn:outgoing>
+      <bpmn:outgoing>Flow_0w50w2s</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="CompuertaConvergenteIngresarFecha">
+      <bpmn:documentation>Unifica el flujo inicial de solicitud de fecha y el flujo de corrección antes de que el empleado ingrese nuevamente la fecha del gasto.</bpmn:documentation>
+      <bpmn:incoming>Flow_1eqckj2</bpmn:incoming>
+      <bpmn:incoming>Flow_0lzigb8</bpmn:incoming>
+      <bpmn:outgoing>Flow_1j7xofo</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sendTask id="TareaSolicitarCorreccionFecha" name="Solicitar corrección de la fecha">
+      <bpmn:documentation>El chatbot informa que la fecha ingresada no tiene un formato válido y solicita al empleado que la ingrese nuevamente.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="telegram-bot-message" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0hlz7ca</bpmn:incoming>
+      <bpmn:outgoing>Flow_0lzigb8</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:serviceTask id="TareaIncrementarIntentosFecha" name="Incrementar intentos de fecha">
+      <bpmn:documentation>El sistema incrementa el contador de intentos fallidos cuando la fecha ingresada no tiene un formato válido.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="incrementar-intentos-fecha" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0w50w2s</bpmn:incoming>
+      <bpmn:outgoing>Flow_0xb4t3q</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sendTask id="TareaSolicitarMonto" name="Solicitar monto">
+      <bpmn:documentation>El chatbot solicita al empleado que ingrese el monto correspondiente al gasto a rendir.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="telegram-bot-message" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0f200y6</bpmn:incoming>
+      <bpmn:outgoing>Flow_1maxauy</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:userTask id="TareaIngresarMonto" name="Ingresar monto">
+      <bpmn:documentation>El empleado ingresa en Telegram el monto correspondiente al gasto a rendir.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <zeebe:formDefinition externalReference="Form_1towce7" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_03ms5y4</bpmn:incoming>
+      <bpmn:outgoing>Flow_00jq6nr</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="TareaValidarFormatoMonto" name="Validar formato del monto">
+      <bpmn:documentation>El sistema verifica que el monto ingresado tenga formato numérico válido para poder continuar con la solicitud.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="validar-monto" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_00jq6nr</bpmn:incoming>
+      <bpmn:outgoing>Flow_1qi9n1i</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="CompuertaConvergenteIngresarMonto">
+      <bpmn:documentation>Unifica el flujo inicial de solicitud de monto y el flujo de corrección antes de que el empleado ingrese nuevamente el monto del gasto.</bpmn:documentation>
+      <bpmn:incoming>Flow_1maxauy</bpmn:incoming>
+      <bpmn:incoming>Flow_1k0v1i4</bpmn:incoming>
+      <bpmn:outgoing>Flow_03ms5y4</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="TareaIncrementarIntentosMonto" name="Incrementar intentos de monto">
+      <bpmn:documentation>El sistema incrementa el contador de intentos fallidos cuando el monto ingresado no tiene un formato numérico válido.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="incrementar-intentos-monto" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_15sgbwb</bpmn:incoming>
+      <bpmn:outgoing>Flow_0sjoafd</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="EventoFinSolicitudResuelta" name="Solicitud resuelta">
+      <bpmn:documentation>El proceso finaliza cuando el chatbot comunica al empleado la decisión final de la rendición y deja registrado el resultado correspondiente.</bpmn:documentation>
+      <bpmn:incoming>Flow_0zrap3z</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sendTask id="TareaNotificarDecision" name="Notificar decisión">
+      <bpmn:documentation>El chatbot comunica al empleado la decisión final de la rendición, ya sea aprobación o rechazo.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="telegram-bot-message" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1plohj6</bpmn:incoming>
+      <bpmn:outgoing>Flow_0zrap3z</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:serviceTask id="TareaRegistrarComprobanteEnviado" name="Registrar comprobante enviado">
+      <bpmn:documentation>El sistema registra la referencia del comprobante enviado por el empleado para asociarla a la solicitud.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="registrar-comprobante" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1emswjq</bpmn:incoming>
+      <bpmn:outgoing>Flow_1hvqlva</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="TareaEnviarComprobante" name="Enviar comprobante">
+      <bpmn:documentation>El empleado envía al chatbot el comprobante del gasto mediante Telegram.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <zeebe:formDefinition externalReference="Form_1w2wnjr" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0phjijk</bpmn:incoming>
+      <bpmn:outgoing>Flow_1rnt15v</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="CompuertaComprobanteValido" name="¿Comprobante válido?">
+      <bpmn:documentation>Evalúa si el comprobante enviado cumple las condiciones requeridas: formato aceptado y coincidencia de categoría, monto y fecha con los datos ingresados por el empleado.</bpmn:documentation>
+      <bpmn:incoming>Flow_0nnhjvb</bpmn:incoming>
+      <bpmn:outgoing>Flow_1n0wlnb</bpmn:outgoing>
+      <bpmn:outgoing>Flow_1emswjq</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="CompuertaConvergenteEnviarComprobante">
+      <bpmn:documentation>Unifica el flujo inicial de solicitud de comprobante y el flujo de corrección antes de que el empleado envíe nuevamente el comprobante del gasto.</bpmn:documentation>
+      <bpmn:incoming>Flow_1uie5sz</bpmn:incoming>
+      <bpmn:incoming>Flow_08npi80</bpmn:incoming>
+      <bpmn:outgoing>Flow_0phjijk</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sendTask id="TareaSolicitarCorreccionComprobante" name="Solicitar corrección comprobante">
+      <bpmn:documentation>El chatbot informa que el comprobante enviado no es válido o no fue recibido correctamente, y solicita un nuevo envío.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="telegram-bot-message" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1bjhrpm</bpmn:incoming>
+      <bpmn:outgoing>Flow_08npi80</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:serviceTask id="TareaIncrementarIntentosComprobante" name="Incrementar intentos del comprobante">
+      <bpmn:documentation>El sistema incrementa el contador de intentos fallidos cuando el comprobante no fue recibido correctamente o no cumple las validaciones requeridas.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="incrementar-intentos-comprobante" retries="incrementar-intentos-comprobante" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1n0wlnb</bpmn:incoming>
+      <bpmn:outgoing>Flow_0ku26ym</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sendTask id="TareaSolicitarComprobante" name="Solicitar comprobante">
+      <bpmn:documentation>El chatbot solicita al empleado que envíe una imagen o archivo correspondiente al comprobante del gasto.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="telegram-bot-message" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0ke0xq3</bpmn:incoming>
+      <bpmn:outgoing>Flow_1uie5sz</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:serviceTask id="TareaRegistrarMontoIngresado" name="Registrar monto ingresado">
+      <bpmn:documentation>El sistema registra el monto válido ingresado por el empleado en la solicitud en curso.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="registrar-monto" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_164d686</bpmn:incoming>
+      <bpmn:outgoing>Flow_0ke0xq3</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="CompuertaMontoValido" name="¿Monto válido?">
+      <bpmn:documentation>Evalúa si el monto ingresado por el empleado tiene un formato numérico válido para continuar con la solicitud.</bpmn:documentation>
+      <bpmn:incoming>Flow_1qi9n1i</bpmn:incoming>
+      <bpmn:outgoing>Flow_164d686</bpmn:outgoing>
+      <bpmn:outgoing>Flow_15sgbwb</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="CompuertaConvergenteCancelarSolicitud">
+      <bpmn:documentation>Unifica los caminos que derivan en la cancelación automática de la solicitud, ya sea por legajo inválido o por agotamiento de intentos de corrección.</bpmn:documentation>
+      <bpmn:incoming>Flow_1h5p819</bpmn:incoming>
+      <bpmn:incoming>Flow_018zb2o</bpmn:incoming>
+      <bpmn:incoming>Flow_1rhutmm</bpmn:incoming>
+      <bpmn:incoming>Flow_0arcdzg</bpmn:incoming>
+      <bpmn:outgoing>Flow_1q2hkn3</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="TareaCancelarSolicitud" name="Cancelar solicitud">
+      <bpmn:documentation>El sistema cancela la solicitud cuando el empleado no cumple una condición necesaria para continuar el proceso, ya sea por legajo inválido o por agotar los intentos disponibles para corregir fecha, monto o comprobante.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="cancelar-solicitud" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1q2hkn3</bpmn:incoming>
+      <bpmn:outgoing>Flow_09v3697</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sendTask id="TareaNotificarCancelacion" name="Notificar cancelación">
+      <bpmn:documentation>El chatbot informa al empleado que la solicitud fue cancelada por legajo inválido o por haberse agotado los intentos disponibles de corrección.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="telegram-bot-message" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_09v3697</bpmn:incoming>
+      <bpmn:outgoing>Flow_0gebyw6</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:endEvent id="EventoFinSolicitudCancelada" name="Solicitud cancelada">
+      <bpmn:documentation>El proceso finaliza porque la solicitud fue cancelada automáticamente por el sistema al no cumplirse una condición necesaria para continuar.</bpmn:documentation>
+      <bpmn:incoming>Flow_0gebyw6</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:exclusiveGateway id="CompuertaIntentosComprobanteDisponibles" name="¿Intentos de comprobante disponibles?">
+      <bpmn:documentation>Evalúa si el empleado aún dispone de intentos para reenviar un comprobante válido antes de cancelar la solicitud.</bpmn:documentation>
+      <bpmn:incoming>Flow_0ku26ym</bpmn:incoming>
+      <bpmn:outgoing>Flow_1bjhrpm</bpmn:outgoing>
+      <bpmn:outgoing>Flow_0arcdzg</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="TareaValidarComprobante" name="Validar comprobante">
+      <bpmn:documentation>El sistema simula la intervención de un agente de IA con OCR que valida el comprobante recibido. La validación verifica que el archivo tenga un formato aceptado y que la categoría, el monto y la fecha detectados en el comprobante coincidan con los datos ingresados por el empleado.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="validar-comprobante" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1rnt15v</bpmn:incoming>
+      <bpmn:outgoing>Flow_0nnhjvb</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sendTask id="TareaSolicitarCorreccionMonto" name="Solicitar corrección del monto">
+      <bpmn:documentation>El chatbot informa que el monto ingresado no tiene un formato válido y solicita al empleado que lo ingrese nuevamente.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="telegram-bot-message" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0eh4zxl</bpmn:incoming>
+      <bpmn:outgoing>Flow_1k0v1i4</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:exclusiveGateway id="CompuertaIntentosMontoDisponibles" name="¿Intentos de monto disponibles?">
+      <bpmn:documentation>Evalúa si el empleado aún dispone de intentos para corregir el monto ingresado antes de cancelar la solicitud.</bpmn:documentation>
+      <bpmn:incoming>Flow_0sjoafd</bpmn:incoming>
+      <bpmn:outgoing>Flow_0eh4zxl</bpmn:outgoing>
+      <bpmn:outgoing>Flow_018zb2o</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="TareaValidarFormatoFecha" name="Validar formato de la fecha">
+      <bpmn:documentation>El sistema verifica que la fecha ingresada tenga un formato válido y pueda ser utilizada en la solicitud.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="validar-fecha" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1faw0ya</bpmn:incoming>
+      <bpmn:outgoing>Flow_014olzz</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="CompuertaIntentosFechaDisponibles" name="¿Intentos de fecha disponibles?">
+      <bpmn:documentation>Evalúa si el empleado aún dispone de intentos para corregir la fecha ingresada antes de cancelar la solicitud.</bpmn:documentation>
+      <bpmn:incoming>Flow_0xb4t3q</bpmn:incoming>
+      <bpmn:outgoing>Flow_0hlz7ca</bpmn:outgoing>
+      <bpmn:outgoing>Flow_1rhutmm</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sendTask id="TareaSolicitarFecha" name="Solicitar fecha">
+      <bpmn:documentation>El chatbot solicita al empleado que ingrese la fecha en  la que fue realizado el gasto a rendir.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="telegram-bot-message" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1rn5sba</bpmn:incoming>
+      <bpmn:outgoing>Flow_1eqckj2</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:serviceTask id="TareaRegistrarCategoriaSeleccionada" name="Registrar categoría seleccionada">
+      <bpmn:documentation>El sistema registra la categoría elegida por el empleado desde el menú del chatbot.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="registrar-categoria" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1ui6wu9</bpmn:incoming>
+      <bpmn:outgoing>Flow_1rn5sba</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sendTask id="TareaMostrarCategoriasDisponibles" name="Mostrar categorías disponibles">
+      <bpmn:documentation>El chatbot muestra al empleado un menú con las categorías de gasto disponibles registradas en la base de datos.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="telegram-bot-menu" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1btyi7d</bpmn:incoming>
+      <bpmn:outgoing>Flow_0sa7c3t</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:serviceTask id="TareaRegistrarLegajoIngresado" name="Registrar legajo ingresado">
+      <bpmn:documentation>El sistema registra temporalmente el legajo ingresado para asociarlo a la solicitud en curso.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="registrar-legajo" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0fgqbfk</bpmn:incoming>
+      <bpmn:outgoing>Flow_1btyi7d</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="CompuertaEmpleadoValidoActivo" name="¿Empleado válido y activo?">
+      <bpmn:documentation>Determina si el empleado está habilitado para presentar una rendición.</bpmn:documentation>
+      <bpmn:incoming>Flow_0013c1z</bpmn:incoming>
+      <bpmn:outgoing>Flow_0fgqbfk</bpmn:outgoing>
+      <bpmn:outgoing>Flow_1h5p819</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="TareaValidarEmpleado" name="Validar empleado">
+      <bpmn:documentation>El sistema consulta la base de datos SQLite para verificar si el legajo ingresado existe y si el empleado se encuentra activo.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="validar-empleado" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_07yly08</bpmn:incoming>
+      <bpmn:outgoing>Flow_0013c1z</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sendTask id="TareaSolicitarLegajo" name="Solicitar legajo">
+      <bpmn:documentation>El chatbot solicita al empleado que ingrese su legajo para identificarlo dentro del sistema.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="telegram-bot-message" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1qnrm7v</bpmn:incoming>
+      <bpmn:outgoing>Flow_05hw2sd</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:serviceTask id="TareaConsultarPoliticaGastos" name="Consultar política de gastos">
+      <bpmn:documentation>El sistema consulta en la base de datos la política aplicable a la categoría seleccionada por el empleado.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="consultar-politica-gastos" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1hvqlva</bpmn:incoming>
+      <bpmn:outgoing>Flow_09ijfd8</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:businessRuleTask id="TareaVerificarLimiteAprobacion" name="Verificar límite de aprobación">
+      <bpmn:documentation>El sistema compara el monto informado con el límite de aprobación definido para la categoría seleccionada.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="verificar-limite-aprobacion" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_09ijfd8</bpmn:incoming>
+      <bpmn:outgoing>Flow_018su25</bpmn:outgoing>
+    </bpmn:businessRuleTask>
+    <bpmn:exclusiveGateway id="CompuertaMontoDentroLimite" name="¿Monto dentro del límite?">
+      <bpmn:documentation>Determina si el monto del gasto está dentro del límite establecido para la categoría.</bpmn:documentation>
+      <bpmn:incoming>Flow_018su25</bpmn:incoming>
+      <bpmn:outgoing>Flow_0i3e34x</bpmn:outgoing>
+      <bpmn:outgoing>Flow_1vbyc7g</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="TareaAprobarSolicitud" name="Aprobar solicitud">
+      <bpmn:documentation>El sistema aprueba la rendición cuando los datos ingresados son válidos y el monto se encuentra dentro del límite permitido, o cuando existe autorización del supervisor.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="aprobar-solicitud" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0i3e34x</bpmn:incoming>
+      <bpmn:outgoing>Flow_0uuez6g</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="CompuertaConvergenteGestionarReintegro">
+      <bpmn:documentation>Unifica los caminos excluyentes que derivan en un reintegro aprobado antes de continuar con la gestión administrativa del pago al empleado.</bpmn:documentation>
+      <bpmn:incoming>Flow_0uuez6g</bpmn:incoming>
+      <bpmn:incoming>Flow_0u83gdv</bpmn:incoming>
+      <bpmn:outgoing>Flow_01buxly</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="TareaGestionarReintegro" name="Gestionar reintegro">
+      <bpmn:documentation>El sistema registra que la rendición fue aprobada y deja asentado que corresponde gestionar el reintegro del gasto al empleado.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="gestionar-reintegro" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_01buxly</bpmn:incoming>
+      <bpmn:outgoing>Flow_05eo6oq</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="CompuertaConvergenteRegistrarResultado">
+      <bpmn:documentation>Unifica los caminos excluyentes que deben registrarse como resultado de la rendición antes de continuar con la notificación al empleado.</bpmn:documentation>
+      <bpmn:incoming>Flow_1ma5fws</bpmn:incoming>
+      <bpmn:incoming>Flow_05eo6oq</bpmn:incoming>
+      <bpmn:outgoing>Flow_17weotc</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="TareaRegistrarResultado" name="Registrar resultado">
+      <bpmn:documentation>El sistema registra en la base de datos SQLite el resultado final de la rendición, incluyendo su estado, empleado asociado, categoría, monto y comprobante recibido.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="registrar-resultado" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_17weotc</bpmn:incoming>
+      <bpmn:outgoing>Flow_1plohj6</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="TareaDerivarSolicitud" name="Derivar solicitud">
+      <bpmn:documentation>El sistema marca la solicitud como derivada porque el monto supera el límite de aprobación automática y requiere evaluación del supervisor.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="derivar-solicitud" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1vbyc7g</bpmn:incoming>
+      <bpmn:outgoing>Flow_1c1whwu</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="CompuertaLimiteJustificado" name="¿Superar el límite está justificado?">
+      <bpmn:documentation>Evalúa si el supervisor considera justificado aprobar una rendición cuyo monto supera el límite de aprobación directa definido por la política interna.</bpmn:documentation>
+      <bpmn:incoming>Flow_0etjjpu</bpmn:incoming>
+      <bpmn:outgoing>Flow_1p4q0sz</bpmn:outgoing>
+      <bpmn:outgoing>Flow_15kjq3b</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="TareaAutorizarExcepcionMonto" name="Autorizar excepción del monto">
+      <bpmn:documentation>El supervisor autoriza el monto excepcional de la solicitud porque la superación del límite está justificada.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <zeebe:formDefinition externalReference="Form_0f82064" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1p4q0sz</bpmn:incoming>
+      <bpmn:outgoing>Flow_0s0jkhk</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="TareaRechazarMontoSolicitud" name="Rechazar excepción del monto">
+      <bpmn:documentation>El supervisor rechaza el monto excepcional de la solicitud porque la superación del límite no está justificada.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <zeebe:formDefinition externalReference="Form_0f82064" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_15kjq3b</bpmn:incoming>
+      <bpmn:outgoing>Flow_0w9p78b</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="TareaRevisarSolicitudDerivada" name="Revisar solicitud derivada">
+      <bpmn:documentation>El supervisor revisa la solicitud derivada por el sistema debido a que el monto informado supera el límite de aprobación automática.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <zeebe:formDefinition externalReference="Form_0f82064" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0swkptc</bpmn:incoming>
+      <bpmn:outgoing>Flow_0etjjpu</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_0etjjpu" sourceRef="TareaRevisarSolicitudDerivada" targetRef="CompuertaLimiteJustificado" />
+    <bpmn:sequenceFlow id="Flow_1p4q0sz" name="Sí" sourceRef="CompuertaLimiteJustificado" targetRef="TareaAutorizarExcepcionMonto">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=limiteJustificado = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_15kjq3b" name="No" sourceRef="CompuertaLimiteJustificado" targetRef="TareaRechazarMontoSolicitud">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=limiteJustificado = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sendTask id="TareaInformarDerivacionSolicitud" name="Informar la derivación de la solicitud">
+      <bpmn:documentation>El chatbot informa al empleado que la solicitud fue derivada a revisión porque el monto supera el límite de aprobación automática.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="telegram-bot-message" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1c1whwu</bpmn:incoming>
+      <bpmn:outgoing>Flow_0swkptc</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:serviceTask id="TareaRegistrarAutorizacionExcepcion" name="Registrar autorización de excepción">
+      <bpmn:documentation>El sistema registra la autorización realizada por el supervisor sobre una solicitud cuyo monto supera el límite de aprobación automática. A partir de esta decisión, la solicitud continúa como aprobada y puede avanzar hacia el registro del resultado y la notificación al empleado.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="registrar-autorizacion-excepcion" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0s0jkhk</bpmn:incoming>
+      <bpmn:outgoing>Flow_0u83gdv</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="TareaRegistrarRechazoExcepcion" name="Registrar rechazo de excepción">
+      <bpmn:documentation>El sistema registra el rechazo realizado por el supervisor sobre una solicitud cuyo monto supera el límite de aprobación automática. A partir de esta decisión, la solicitud continúa como rechazada y puede avanzar hacia el registro del resultado y la notificación al empleado.</bpmn:documentation>
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="registrar-rechazo-excepcion" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0w9p78b</bpmn:incoming>
+      <bpmn:outgoing>Flow_1ma5fws</bpmn:outgoing>
+    </bpmn:serviceTask>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="RendicionGastosInternosToBe">
+      <bpmndi:BPMNShape id="Participant_056nh3b_di" bpmnElement="Participant_056nh3b" isHorizontal="true">
+        <dc:Bounds x="159" y="190" width="3271" height="1320" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_1ph4b7j_di" bpmnElement="Supervisor" isHorizontal="true">
+        <dc:Bounds x="189" y="1200" width="3241" height="310" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_1ydpijg_di" bpmnElement="Sistema_Chatbot" isHorizontal="true">
+        <dc:Bounds x="189" y="350" width="3241" height="850" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_0jbpf0w_di" bpmnElement="Empleado_Solicitante" isHorizontal="true">
+        <dc:Bounds x="189" y="190" width="3241" height="160" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="EventoInicioReintegroGastoRequerido">
+        <dc:Bounds x="242" y="252" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="221" y="298" width="77" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0r37uru_di" bpmnElement="TareaIniciarSolicitud">
+        <dc:Bounds x="319" y="230" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_15hlhdp_di" bpmnElement="TareaIngresarLegajo">
+        <dc:Bounds x="472" y="230" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0pzta1g_di" bpmnElement="TareaSeleccionarCategoria">
+        <dc:Bounds x="1104" y="230" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0rry7ku_di" bpmnElement="TareaIngresarFecha">
+        <dc:Bounds x="1578" y="230" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0evwa5x_di" bpmnElement="CompuertaFechaValida" isMarkerVisible="true">
+        <dc:Bounds x="1603" y="705" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1592" y="762" width="76" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1n0wdtg_di" bpmnElement="CompuertaConvergenteIngresarFecha" isMarkerVisible="true">
+        <dc:Bounds x="1445" y="245" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_0s5541m" bpmnElement="TareaSolicitarCorreccionFecha">
+        <dc:Bounds x="1420" y="400" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_0k8y98r" bpmnElement="TareaIncrementarIntentosFecha">
+        <dc:Bounds x="1420" y="690" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1t0gt3k_di" bpmnElement="TareaSolicitarMonto">
+        <dc:Bounds x="1736" y="690" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_02r2a0u_di" bpmnElement="TareaIngresarMonto">
+        <dc:Bounds x="2052" y="230" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0ex3jih_di" bpmnElement="TareaValidarFormatoMonto">
+        <dc:Bounds x="2052" y="400" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1on6h4f_di" bpmnElement="CompuertaConvergenteIngresarMonto" isMarkerVisible="true">
+        <dc:Bounds x="1919" y="245" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_1ror6wr" bpmnElement="TareaIncrementarIntentosMonto">
+        <dc:Bounds x="1894" y="690" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_02m7n8y_di" bpmnElement="EventoFinSolicitudResuelta">
+        <dc:Bounds x="3342" y="712" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="3318" y="755" width="84" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0r29uvg_di" bpmnElement="TareaNotificarDecision">
+        <dc:Bounds x="3158" y="690" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_0ozziu9" bpmnElement="TareaRegistrarComprobanteEnviado">
+        <dc:Bounds x="2842" y="690" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1fuezmg_di" bpmnElement="TareaEnviarComprobante">
+        <dc:Bounds x="2684" y="230" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1bg7ud8_di" bpmnElement="CompuertaComprobanteValido" isMarkerVisible="true">
+        <dc:Bounds x="2709" y="705" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2697" y="762" width="74" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1ba9nvk_di" bpmnElement="CompuertaConvergenteEnviarComprobante" isMarkerVisible="true">
+        <dc:Bounds x="2551" y="245" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0iavuqg_di" bpmnElement="TareaSolicitarCorreccionComprobante">
+        <dc:Bounds x="2526" y="400" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_1ggyf2m" bpmnElement="TareaIncrementarIntentosComprobante">
+        <dc:Bounds x="2526" y="690" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1xjt7b0_di" bpmnElement="TareaSolicitarComprobante">
+        <dc:Bounds x="2368" y="690" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_0p5pilp" bpmnElement="TareaRegistrarMontoIngresado">
+        <dc:Bounds x="2210" y="690" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0yjj74e_di" bpmnElement="CompuertaMontoValido" isMarkerVisible="true">
+        <dc:Bounds x="2077" y="705" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2064" y="765" width="76" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1np02i0_di" bpmnElement="CompuertaConvergenteCancelarSolicitud" isMarkerVisible="true">
+        <dc:Bounds x="971" y="815" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_01b3fsp_di" bpmnElement="TareaCancelarSolicitud">
+        <dc:Bounds x="946" y="940" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_1n682io" bpmnElement="TareaNotificarCancelacion">
+        <dc:Bounds x="946" y="1070" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_10ax9s5_di" bpmnElement="EventoFinSolicitudCancelada">
+        <dc:Bounds x="1136" y="1092" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1129" y="1135" width="51" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_01pyar2" bpmnElement="CompuertaIntentosComprobanteDisponibles" isMarkerVisible="true">
+        <dc:Bounds x="2551" y="560" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2610" y="572" width="65" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_06bw9ot_di" bpmnElement="TareaValidarComprobante">
+        <dc:Bounds x="2684" y="400" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1u3tct3_di" bpmnElement="TareaSolicitarCorreccionMonto">
+        <dc:Bounds x="1894" y="400" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_06tna1j_di" bpmnElement="CompuertaIntentosMontoDisponibles" isMarkerVisible="true">
+        <dc:Bounds x="1919" y="560" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1979" y="571.5" width="62" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1w84iqn_di" bpmnElement="TareaValidarFormatoFecha">
+        <dc:Bounds x="1578" y="400" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_1gejssk" bpmnElement="CompuertaIntentosFechaDisponibles" isMarkerVisible="true">
+        <dc:Bounds x="1445" y="560" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1506" y="572" width="62" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0w92ssa_di" bpmnElement="TareaSolicitarFecha">
+        <dc:Bounds x="1262" y="400" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0mql34g_di" bpmnElement="TareaRegistrarCategoriaSeleccionada">
+        <dc:Bounds x="1104" y="400" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0p7i9cq_di" bpmnElement="TareaMostrarCategoriasDisponibles">
+        <dc:Bounds x="960" y="400" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_0cpa7yo" bpmnElement="TareaRegistrarLegajoIngresado">
+        <dc:Bounds x="788" y="400" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1co09cq_di" bpmnElement="CompuertaEmpleadoValidoActivo" isMarkerVisible="true">
+        <dc:Bounds x="655" y="415" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="635.5" y="377.5" width="89" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1wbi93l_di" bpmnElement="TareaValidarEmpleado">
+        <dc:Bounds x="472" y="400" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1iey54k_di" bpmnElement="TareaSolicitarLegajo">
+        <dc:Bounds x="319" y="400" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_08by0i6_di" bpmnElement="TareaConsultarPoliticaGastos">
+        <dc:Bounds x="1894" y="940" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0rnoj41_di" bpmnElement="TareaVerificarLimiteAprobacion">
+        <dc:Bounds x="2052" y="940" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_12trtto_di" bpmnElement="CompuertaMontoDentroLimite" isMarkerVisible="true">
+        <dc:Bounds x="2235" y="955" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2215" y="918" width="90" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1xg6mtg_di" bpmnElement="TareaAprobarSolicitud">
+        <dc:Bounds x="2368" y="940" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0m6qp2t_di" bpmnElement="CompuertaConvergenteGestionarReintegro" isMarkerVisible="true">
+        <dc:Bounds x="2551" y="955" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1ku672b_di" bpmnElement="TareaGestionarReintegro">
+        <dc:Bounds x="2684" y="940" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1nmnb72_di" bpmnElement="CompuertaConvergenteRegistrarResultado" isMarkerVisible="true">
+        <dc:Bounds x="2867" y="955" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0oi78av_di" bpmnElement="TareaRegistrarResultado">
+        <dc:Bounds x="3000" y="940" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0qj4r6m_di" bpmnElement="TareaDerivarSolicitud">
+        <dc:Bounds x="2210" y="1070" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_0jjm44b" bpmnElement="TareaInformarDerivacionSolicitud">
+        <dc:Bounds x="2368" y="1070" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0t3xno0_di" bpmnElement="CompuertaLimiteJustificado" isMarkerVisible="true">
+        <dc:Bounds x="2235" y="1385" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2217" y="1442" width="87" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_01lduaf_di" bpmnElement="TareaAutorizarExcepcionMonto">
+        <dc:Bounds x="2368" y="1260" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1g6kjao_di" bpmnElement="TareaRechazarMontoSolicitud">
+        <dc:Bounds x="2368" y="1370" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_18bt5s7_di" bpmnElement="TareaRevisarSolicitudDerivada">
+        <dc:Bounds x="2052" y="1370" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0gjw7pn_di" bpmnElement="TareaRegistrarAutorizacionExcepcion">
+        <dc:Bounds x="2526" y="1070" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0iep9ov_di" bpmnElement="TareaRegistrarRechazoExcepcion">
+        <dc:Bounds x="2842" y="1070" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1qnrm7v_di" bpmnElement="Flow_1qnrm7v">
+        <di:waypoint x="369" y="310" />
+        <di:waypoint x="369" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_05hw2sd_di" bpmnElement="Flow_05hw2sd">
+        <di:waypoint x="419" y="440" />
+        <di:waypoint x="450" y="440" />
+        <di:waypoint x="450" y="270" />
+        <di:waypoint x="472" y="270" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_07yly08_di" bpmnElement="Flow_07yly08">
+        <di:waypoint x="522" y="310" />
+        <di:waypoint x="522" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0013c1z_di" bpmnElement="Flow_0013c1z">
+        <di:waypoint x="572" y="440" />
+        <di:waypoint x="655" y="440" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0fgqbfk_di" bpmnElement="Flow_0fgqbfk">
+        <di:waypoint x="705" y="440" />
+        <di:waypoint x="788" y="440" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="725" y="449" width="11" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1h5p819_di" bpmnElement="Flow_1h5p819">
+        <di:waypoint x="680" y="465" />
+        <di:waypoint x="680" y="840" />
+        <di:waypoint x="971" y="840" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="652" y="473" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1btyi7d_di" bpmnElement="Flow_1btyi7d">
+        <di:waypoint x="888" y="440" />
+        <di:waypoint x="960" y="440" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0sa7c3t_di" bpmnElement="Flow_0sa7c3t">
+        <di:waypoint x="1010" y="400" />
+        <di:waypoint x="1010" y="270" />
+        <di:waypoint x="1104" y="270" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1ui6wu9_di" bpmnElement="Flow_1ui6wu9">
+        <di:waypoint x="1154" y="310" />
+        <di:waypoint x="1154" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1rn5sba_di" bpmnElement="Flow_1rn5sba">
+        <di:waypoint x="1204" y="440" />
+        <di:waypoint x="1262" y="440" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0zz28gx_di" bpmnElement="Flow_0zz28gx">
+        <di:waypoint x="278" y="270" />
+        <di:waypoint x="319" y="270" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0phjijk_di" bpmnElement="Flow_0phjijk">
+        <di:waypoint x="2601" y="270" />
+        <di:waypoint x="2684" y="270" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1rnt15v_di" bpmnElement="Flow_1rnt15v">
+        <di:waypoint x="2734" y="310" />
+        <di:waypoint x="2734" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_08npi80_di" bpmnElement="Flow_08npi80">
+        <di:waypoint x="2576" y="400" />
+        <di:waypoint x="2576" y="295" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1uie5sz_di" bpmnElement="Flow_1uie5sz">
+        <di:waypoint x="2418" y="690" />
+        <di:waypoint x="2418" y="270" />
+        <di:waypoint x="2551" y="270" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_03ms5y4_di" bpmnElement="Flow_03ms5y4">
+        <di:waypoint x="1969" y="270" />
+        <di:waypoint x="2052" y="270" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_00jq6nr_di" bpmnElement="Flow_00jq6nr">
+        <di:waypoint x="2102" y="310" />
+        <di:waypoint x="2102" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1k0v1i4_di" bpmnElement="Flow_1k0v1i4">
+        <di:waypoint x="1944" y="400" />
+        <di:waypoint x="1944" y="295" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1maxauy_di" bpmnElement="Flow_1maxauy">
+        <di:waypoint x="1786" y="690" />
+        <di:waypoint x="1786" y="270" />
+        <di:waypoint x="1919" y="270" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1qi9n1i_di" bpmnElement="Flow_1qi9n1i">
+        <di:waypoint x="2102" y="480" />
+        <di:waypoint x="2102" y="705" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0nnhjvb_di" bpmnElement="Flow_0nnhjvb">
+        <di:waypoint x="2734" y="480" />
+        <di:waypoint x="2734" y="705" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0swkptc_di" bpmnElement="Flow_0swkptc">
+        <di:waypoint x="2418" y="1150" />
+        <di:waypoint x="2418" y="1230" />
+        <di:waypoint x="2102" y="1230" />
+        <di:waypoint x="2102" y="1370" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0s0jkhk_di" bpmnElement="Flow_0s0jkhk">
+        <di:waypoint x="2468" y="1300" />
+        <di:waypoint x="2576" y="1300" />
+        <di:waypoint x="2576" y="1150" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0w9p78b_di" bpmnElement="Flow_0w9p78b">
+        <di:waypoint x="2468" y="1410" />
+        <di:waypoint x="2892" y="1410" />
+        <di:waypoint x="2892" y="1150" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1eqckj2_di" bpmnElement="Flow_1eqckj2">
+        <di:waypoint x="1312" y="400" />
+        <di:waypoint x="1312" y="270" />
+        <di:waypoint x="1445" y="270" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1j7xofo_di" bpmnElement="Flow_1j7xofo">
+        <di:waypoint x="1495" y="270" />
+        <di:waypoint x="1578" y="270" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1faw0ya_di" bpmnElement="Flow_1faw0ya">
+        <di:waypoint x="1628" y="310" />
+        <di:waypoint x="1628" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_014olzz_di" bpmnElement="Flow_014olzz">
+        <di:waypoint x="1628" y="480" />
+        <di:waypoint x="1628" y="705" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_164d686_di" bpmnElement="Flow_164d686">
+        <di:waypoint x="2127" y="730" />
+        <di:waypoint x="2210" y="730" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2154" y="712" width="11" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_15sgbwb_di" bpmnElement="Flow_15sgbwb">
+        <di:waypoint x="2077" y="730" />
+        <di:waypoint x="1994" y="730" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2055" y="712" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1n0wlnb_di" bpmnElement="Flow_1n0wlnb">
+        <di:waypoint x="2709" y="730" />
+        <di:waypoint x="2626" y="730" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2660" y="712" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1emswjq_di" bpmnElement="Flow_1emswjq">
+        <di:waypoint x="2759" y="730" />
+        <di:waypoint x="2842" y="730" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2795" y="712" width="11" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0ke0xq3_di" bpmnElement="Flow_0ke0xq3">
+        <di:waypoint x="2310" y="730" />
+        <di:waypoint x="2368" y="730" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1hvqlva_di" bpmnElement="Flow_1hvqlva">
+        <di:waypoint x="2892" y="770" />
+        <di:waypoint x="2892" y="880" />
+        <di:waypoint x="1944" y="880" />
+        <di:waypoint x="1944" y="940" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1plohj6_di" bpmnElement="Flow_1plohj6">
+        <di:waypoint x="3100" y="980" />
+        <di:waypoint x="3208" y="980" />
+        <di:waypoint x="3208" y="770" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0zrap3z_di" bpmnElement="Flow_0zrap3z">
+        <di:waypoint x="3258" y="730" />
+        <di:waypoint x="3342" y="730" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0f200y6_di" bpmnElement="Flow_0f200y6">
+        <di:waypoint x="1653" y="730" />
+        <di:waypoint x="1736" y="730" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1690" y="712" width="11" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0sjoafd_di" bpmnElement="Flow_0sjoafd">
+        <di:waypoint x="1944" y="690" />
+        <di:waypoint x="1944" y="610" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0eh4zxl_di" bpmnElement="Flow_0eh4zxl">
+        <di:waypoint x="1944" y="560" />
+        <di:waypoint x="1944" y="480" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1954" y="527.5" width="11" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1q2hkn3_di" bpmnElement="Flow_1q2hkn3">
+        <di:waypoint x="996" y="865" />
+        <di:waypoint x="996" y="940" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_09v3697_di" bpmnElement="Flow_09v3697">
+        <di:waypoint x="996" y="1020" />
+        <di:waypoint x="996" y="1070" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0gebyw6_di" bpmnElement="Flow_0gebyw6">
+        <di:waypoint x="1046" y="1110" />
+        <di:waypoint x="1136" y="1110" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_018zb2o_di" bpmnElement="Flow_018zb2o">
+        <di:waypoint x="1919" y="585" />
+        <di:waypoint x="1870" y="585" />
+        <di:waypoint x="1870" y="840" />
+        <di:waypoint x="1021" y="840" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1895" y="598" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0w50w2s_di" bpmnElement="Flow_0w50w2s">
+        <di:waypoint x="1603" y="730" />
+        <di:waypoint x="1520" y="730" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1554" y="712" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0xb4t3q_di" bpmnElement="Flow_0xb4t3q">
+        <di:waypoint x="1470" y="690" />
+        <di:waypoint x="1470" y="610" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0hlz7ca_di" bpmnElement="Flow_0hlz7ca">
+        <di:waypoint x="1470" y="560" />
+        <di:waypoint x="1470" y="480" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1480" y="520.5" width="11" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0lzigb8_di" bpmnElement="Flow_0lzigb8">
+        <di:waypoint x="1470" y="400" />
+        <di:waypoint x="1470" y="295" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1rhutmm_di" bpmnElement="Flow_1rhutmm">
+        <di:waypoint x="1445" y="585" />
+        <di:waypoint x="996" y="585" />
+        <di:waypoint x="996" y="815" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1402" y="598" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1ma5fws_di" bpmnElement="Flow_1ma5fws">
+        <di:waypoint x="2892" y="1070" />
+        <di:waypoint x="2892" y="1005" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_05eo6oq_di" bpmnElement="Flow_05eo6oq">
+        <di:waypoint x="2784" y="980" />
+        <di:waypoint x="2867" y="980" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_17weotc_di" bpmnElement="Flow_17weotc">
+        <di:waypoint x="2917" y="980" />
+        <di:waypoint x="3000" y="980" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0uuez6g_di" bpmnElement="Flow_0uuez6g">
+        <di:waypoint x="2468" y="980" />
+        <di:waypoint x="2551" y="980" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0u83gdv_di" bpmnElement="Flow_0u83gdv">
+        <di:waypoint x="2576" y="1070" />
+        <di:waypoint x="2576" y="1005" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_01buxly_di" bpmnElement="Flow_01buxly">
+        <di:waypoint x="2601" y="980" />
+        <di:waypoint x="2684" y="980" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_018su25_di" bpmnElement="Flow_018su25">
+        <di:waypoint x="2152" y="980" />
+        <di:waypoint x="2235" y="980" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0i3e34x_di" bpmnElement="Flow_0i3e34x">
+        <di:waypoint x="2285" y="980" />
+        <di:waypoint x="2368" y="980" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2315" y="989" width="11" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1vbyc7g_di" bpmnElement="Flow_1vbyc7g">
+        <di:waypoint x="2260" y="1005" />
+        <di:waypoint x="2260" y="1070" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2232" y="1023" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1c1whwu_di" bpmnElement="Flow_1c1whwu">
+        <di:waypoint x="2310" y="1110" />
+        <di:waypoint x="2368" y="1110" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_09ijfd8_di" bpmnElement="Flow_09ijfd8">
+        <di:waypoint x="1994" y="980" />
+        <di:waypoint x="2052" y="980" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0ku26ym_di" bpmnElement="Flow_0ku26ym">
+        <di:waypoint x="2576" y="690" />
+        <di:waypoint x="2576" y="610" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1bjhrpm_di" bpmnElement="Flow_1bjhrpm">
+        <di:waypoint x="2576" y="560" />
+        <di:waypoint x="2576" y="480" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2586" y="524.5" width="11" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0arcdzg_di" bpmnElement="Flow_0arcdzg">
+        <di:waypoint x="2551" y="585" />
+        <di:waypoint x="2500" y="585" />
+        <di:waypoint x="2500" y="840" />
+        <di:waypoint x="1021" y="840" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2523" y="598" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0etjjpu_di" bpmnElement="Flow_0etjjpu">
+        <di:waypoint x="2152" y="1410" />
+        <di:waypoint x="2235" y="1410" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1p4q0sz_di" bpmnElement="Flow_1p4q0sz">
+        <di:waypoint x="2260" y="1385" />
+        <di:waypoint x="2260" y="1300" />
+        <di:waypoint x="2368" y="1300" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2270" y="1339" width="11" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_15kjq3b_di" bpmnElement="Flow_15kjq3b">
+        <di:waypoint x="2285" y="1410" />
+        <di:waypoint x="2368" y="1410" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2320" y="1392" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="TextAnnotation_rendicion_intro_di" bpmnElement="TextAnnotation_rendicion_intro">
+        <dc:Bounds x="170" y="60" width="294" height="100" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="TextAnnotation_rendicion_intro_di" bpmnElement="Association_rendicion_intro_di">
+        <di:waypoint x="260" y="252" />
+        <di:waypoint x="260" y="160" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
