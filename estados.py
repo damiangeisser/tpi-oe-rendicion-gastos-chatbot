@@ -30,6 +30,11 @@ ESTADO_CONVERSACION_ESPERANDO_REVISION_SUPERVISOR = 7
 ESTADO_CONVERSACION_FINALIZADO = 8
 
 # ------------------------------------------------------------
+# Categorías de gasto (lookup_categorias_gasto.codigo)
+# ------------------------------------------------------------
+CATEGORIA_GASTO_OTROS = 5
+
+# ------------------------------------------------------------
 # Límites de reintentos
 # ------------------------------------------------------------
 MAX_INTENTOS_VALIDACION = 3

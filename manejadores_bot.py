@@ -40,7 +40,7 @@ MENSAJE_LEGAJO_INVALIDO = (
 
 MENSAJE_LEGAJO_VALIDO = "¡Hola, {nombre} {apellido}! Validamos tu legajo correctamente."
 
-MENSAJE_LEGAJO_DEBE_SER_TEXTO = "Debe ingresar su legajo como texto."
+MENSAJE_LEGAJO_DEBE_SER_TEXTO = "Ingresá tu legajo como texto."
 
 MENSAJE_PEDIR_CATEGORIA = "Elegí la categoría del gasto que querés rendir:"
 
@@ -52,40 +52,34 @@ MENSAJE_CATEGORIA_NO_DISPONIBLE = (
 
 MENSAJE_ACCION_NO_ESPERADA = "Esa acción no corresponde en este momento de tu solicitud."
 
-MENSAJE_PEDIR_FECHA = "Ingrese la fecha del gasto en formato DD/MM/AAAA."
+MENSAJE_PEDIR_FECHA = "Ingresá la fecha del gasto en formato DD/MM/AAAA."
 
 MENSAJE_FECHA_REGISTRADA = "Fecha registrada: {fecha}."
 
 MENSAJE_FECHA_INVALIDA_REINTENTAR = (
-    "La fecha ingresada no es válida. Use el formato DD/MM/AAAA. Intentos restantes: {restantes}."
+    "La fecha ingresada no es válida. Usá el formato DD/MM/AAAA. Intentos restantes: {restantes}."
 )
 
 MENSAJE_SOLICITUD_CANCELADA_POR_INTENTOS_FECHA = (
     "La solicitud fue cancelada porque se alcanzó la cantidad máxima de intentos para ingresar una fecha válida."
 )
 
-MENSAJE_PEDIR_MONTO = "Ingrese el monto del gasto."
+MENSAJE_PEDIR_MONTO = "Ingresá el monto del gasto."
 
 MENSAJE_MONTO_REGISTRADO = "Monto registrado: ${monto}."
 
 MENSAJE_MONTO_INVALIDO_REINTENTAR = (
-    "El monto ingresado no es válido. Ingrese un número positivo. Intentos restantes: {restantes}."
+    "El monto ingresado no es válido. Ingresá un número positivo. Intentos restantes: {restantes}."
 )
 
 MENSAJE_SOLICITUD_CANCELADA_POR_INTENTOS_MONTO = (
     "La solicitud fue cancelada porque se alcanzó la cantidad máxima de intentos para ingresar un monto válido."
 )
 
-MENSAJE_PEDIR_COMPROBANTE = "Envíe el comprobante del gasto en formato JPG."
-
-MENSAJE_COMPROBANTE_VALIDO = (
-    "Comprobante recibido correctamente. Ya contamos con todos los datos necesarios. "
-    "Le informaremos cuando la solicitud sea resuelta."
-    "Puede enviar /cancelar para cancelar la solicitud actual."
-)
+MENSAJE_PEDIR_COMPROBANTE = "Enviá el comprobante del gasto en formato JPG."
 
 MENSAJE_COMPROBANTE_INVALIDO_REINTENTAR = (
-    "El comprobante no es válido. Debe enviar un archivo JPG que no supere el tamaño máximo permitido. "
+    "El comprobante no es válido. Tenés que enviar un archivo JPG que no supere el tamaño máximo permitido. "
     "Intentos restantes: {restantes}."
 )
 
@@ -96,25 +90,25 @@ MENSAJE_SOLICITUD_CANCELADA_POR_INTENTOS_COMPROBANTE = (
 MENSAJE_USAR_START = "No tenés una solicitud activa. Enviá /start para iniciar una rendición de gastos."
 
 MENSAJE_SOLICITUD_PENDIENTE_DE_RESOLUCION = (
-    "Ya contamos con todos los datos necesarios para esta solicitud. Le informaremos cuando sea resuelta. "
-    "Puede enviar /cancelar para cancelar la solicitud actual."
+    "Ya contamos con todos los datos necesarios para esta solicitud. Te informaremos cuando sea resuelta. "
+    "Podés enviar /cancelar para cancelar la solicitud actual."
 )
 
 MENSAJE_SOLICITUD_PENDIENTE_DE_RESOLUCION_INICIO = (
-    "Ya existe una solicitud pendiente de resolución. Le informaremos cuando sea resuelta. "
-    "Puede enviar /cancelar para cancelar la solicitud actual."
+    "Ya existe una solicitud pendiente de resolución. Te informaremos cuando sea resuelta. "
+    "Podés enviar /cancelar para cancelar la solicitud actual."
 )
 
 MENSAJE_ESPERANDO_PROXIMO_PASO = (
     "Tu solicitud está en curso. En una próxima etapa continuaremos con los siguientes pasos."
 )
 
-MENSAJE_SIN_SOLICITUD_ACTIVA = "No tiene una solicitud activa para cancelar."
+MENSAJE_SIN_SOLICITUD_ACTIVA = "No tenés una solicitud activa para cancelar."
 
 MENSAJE_SOLICITUD_CANCELADA_POR_USUARIO = "Tu solicitud fue cancelada. Si querés iniciar una nueva, enviá /start."
 
 MENSAJE_SOLICITUD_PENDIENTE_CANCELADA = (
-    "La solicitud fue cancelada correctamente. Puede enviar /start para iniciar una nueva solicitud."
+    "La solicitud fue cancelada correctamente. Podés enviar /start para iniciar una nueva solicitud."
 )
 
 MOTIVO_CANCELACION_LEGAJO_INVALIDO = "Legajo inválido o usuario no habilitado."
@@ -128,7 +122,6 @@ MOTIVO_CANCELACION_INTENTOS_FECHA = "Cantidad máxima de intentos alcanzada al i
 MOTIVO_CANCELACION_INTENTOS_MONTO = "Cantidad máxima de intentos alcanzada al ingresar el monto del gasto."
 
 MOTIVO_CANCELACION_INTENTOS_COMPROBANTE = "Cantidad máxima de intentos alcanzada al enviar el comprobante."
-
 
 def _obtener_telegram_user_id(update: Update) -> str:
     """Extrae el identificador del usuario de Telegram como texto, tal como se almacena en la base."""
@@ -344,12 +337,16 @@ def _validar_comprobante_recibido(mensaje) -> str:
 
 
 async def _procesar_comprobante(update: Update, solicitud) -> None:
-    """Valida el comprobante recibido y avanza, reintenta o cancela la solicitud según el resultado.
+    """Valida el comprobante recibido y, si es válido, resuelve la solicitud.
 
-    Esta etapa solo verifica los requisitos técnicos del archivo (formato JPG
-    y tamaño máximo permitido) y guarda el identificador de Telegram del
-    archivo. La simulación de OCR y la validación de la política de gastos se
-    realizan en etapas posteriores.
+    Esta etapa verifica los requisitos técnicos del archivo (formato JPG y
+    tamaño máximo permitido), reintenta o cancela la solicitud según el
+    resultado igual que las demás validaciones, y si el comprobante es válido
+    no se limita a guardarlo: ya se cuenta con todos los datos necesarios, así
+    que a continuación se simula la validación por OCR y se aplica la
+    política de gastos para resolver la solicitud (aprobación automática,
+    derivación a supervisor o cancelación), informando a la persona usuaria
+    del resultado final.
     """
     mensaje = update.effective_message
 
@@ -368,7 +365,9 @@ async def _procesar_comprobante(update: Update, solicitud) -> None:
         return
 
     servicios.registrar_comprobante_solicitud(solicitud["id"], comprobante_file_id)
-    await mensaje.reply_text(MENSAJE_COMPROBANTE_VALIDO)
+    servicios.registrar_validacion_ocr_simulada(solicitud["id"])
+    mensaje_resultado = servicios.validar_politica_y_resolver_solicitud(solicitud["id"])
+    await mensaje.reply_text(mensaje_resultado)
 
 
 async def manejar_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

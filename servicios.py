@@ -5,12 +5,15 @@ unidad de trabajo completa (consulta o transacción) y cierra la conexión. Así
 los manejadores de Telegram no necesitan conocer detalles de SQL ni de SQLite.
 """
 
+import logging
 import sqlite3
 import uuid
 from datetime import date, datetime
 
 import base_datos
 import estados
+
+logger = logging.getLogger(__name__)
 
 
 def _ahora() -> str:
@@ -518,3 +521,313 @@ def incrementar_intentos_comprobante(solicitud_id: str) -> int:
         return fila["intentos_comprobante"]
     finally:
         conexion.close()
+
+
+RESULTADO_VALIDACION_OCR_SIMULADA = (
+    "Validación OCR simulada exitosa. El comprobante se considera consistente "
+    "con la categoría, fecha y monto ingresados."
+)
+
+MOTIVO_CANCELACION_CATEGORIA_NO_PERMITIDA = "Categoría no permitida para el área del usuario."
+
+MOTIVO_CANCELACION_SIN_SUPERVISOR_ACTIVO = "No existe un supervisor activo disponible para revisar la solicitud."
+
+MOTIVO_DERIVACION_CATEGORIA_REVISION_MANUAL = "La categoría seleccionada requiere revisión manual."
+
+MOTIVO_DERIVACION_MONTO_SUPERA_LIMITE = "El monto supera el límite de aprobación automática."
+
+MOTIVO_DERIVACION_FECHA_FUERA_DE_MES_CORRIENTE = "La fecha del gasto no corresponde al mes corriente."
+
+MENSAJE_SOLICITUD_APROBADA_AUTOMATICAMENTE = (
+    "La solicitud fue aprobada automáticamente. El reintegro quedó registrado para su gestión. "
+    "Podés enviar /start para iniciar una nueva solicitud."
+)
+
+MENSAJE_SOLICITUD_CANCELADA_SIN_SUPERVISOR = (
+    "La solicitud fue cancelada porque no hay un supervisor activo disponible para revisión. "
+    "Podés enviar /start para iniciar una nueva solicitud."
+)
+
+
+def registrar_validacion_ocr_simulada(solicitud_id: str) -> None:
+    """Simula la validación por OCR del comprobante recibido y registra su resultado.
+
+    Para no complejizar la lógica del prototipo, y dado que el objetivo del
+    trabajo práctico es la automatización del proceso administrativo y no la
+    implementación real de OCR, se simula la validación del comprobante. Si
+    el archivo JPG superó la validación técnica, se considera que los datos
+    detectados coinciden con la categoría, fecha y monto ingresados.
+    """
+    ahora = _ahora()
+    conexion = base_datos.obtener_conexion()
+    try:
+        modificado_por = _determinar_modificado_por(conexion, solicitud_id)
+
+        with conexion:
+            conexion.execute(
+                """
+                UPDATE solicitudes
+                SET validacion_ocr_simulada = 1,
+                    resultado_validacion_ocr = ?,
+                    modificado_por = ?,
+                    modificado_en = ?
+                WHERE id = ?;
+                """,
+                (RESULTADO_VALIDACION_OCR_SIMULADA, modificado_por, ahora, solicitud_id),
+            )
+    finally:
+        conexion.close()
+
+
+def obtener_solicitud_por_id(solicitud_id: str) -> sqlite3.Row | None:
+    """Busca una solicitud por su identificador."""
+    conexion = base_datos.obtener_conexion()
+    try:
+        return conexion.execute(
+            "SELECT * FROM solicitudes WHERE id = ?;", (solicitud_id,)
+        ).fetchone()
+    finally:
+        conexion.close()
+
+
+def obtener_politica_gasto_activa(area_codigo: int, categoria_gasto_codigo: int) -> sqlite3.Row | None:
+    """Busca la política de gastos activa para una combinación de área y categoría, si existe."""
+    conexion = base_datos.obtener_conexion()
+    try:
+        return conexion.execute(
+            """
+            SELECT * FROM politicas_gastos
+            WHERE area_codigo = ?
+              AND categoria_gasto_codigo = ?
+              AND activo = 1
+            LIMIT 1;
+            """,
+            (area_codigo, categoria_gasto_codigo),
+        ).fetchone()
+    finally:
+        conexion.close()
+
+
+def obtener_supervisor_activo() -> sqlite3.Row | None:
+    """Busca el primer usuario activo con rol Supervisor, utilizado para derivar solicitudes a revisión."""
+    conexion = base_datos.obtener_conexion()
+    try:
+        return conexion.execute(
+            "SELECT * FROM usuarios WHERE rol_codigo = ? AND activo = 1 LIMIT 1;",
+            (estados.ROL_SUPERVISOR,),
+        ).fetchone()
+    finally:
+        conexion.close()
+
+
+def obtener_categorias_validas_por_area(area_codigo: int) -> list[str]:
+    """Devuelve las descripciones de las categorías de gasto habilitadas para un área.
+
+    Una categoría se considera habilitada para el área cuando existe una
+    política de gastos activa que la vincula con esa área. Se utiliza para
+    informar al usuario qué categorías sí puede rendir, cuando la elegida no
+    está permitida.
+    """
+    conexion = base_datos.obtener_conexion()
+    try:
+        filas = conexion.execute(
+            """
+            SELECT categoria.descripcion AS descripcion
+            FROM politicas_gastos AS politica
+            JOIN lookup_categorias_gasto AS categoria ON categoria.codigo = politica.categoria_gasto_codigo
+            WHERE politica.area_codigo = ?
+              AND politica.activo = 1
+              AND categoria.activo = 1
+            ORDER BY categoria.descripcion;
+            """,
+            (area_codigo,),
+        ).fetchall()
+        return [fila["descripcion"] for fila in filas]
+    finally:
+        conexion.close()
+
+
+def construir_mensaje_derivacion(motivos_derivacion: list[str]) -> str:
+    """Arma el mensaje que informa la derivación a supervisor, listando todos los motivos aplicables."""
+    encabezado_motivos = (
+        "El motivo de la derivación fue:" if len(motivos_derivacion) == 1
+        else "Los motivos de la derivación fueron:"
+    )
+    lista_motivos = "\n".join(f"- {motivo}" for motivo in motivos_derivacion)
+    return (
+        "La solicitud fue derivada al supervisor para revisión.\n\n"
+        f"{encabezado_motivos}\n"
+        f"{lista_motivos}\n\n"
+        "Te informaremos cuando sea resuelta. Podés enviar /cancelar para cancelar la solicitud actual."
+    )
+
+
+def construir_mensaje_categoria_no_permitida(area: str, categoria_seleccionada: str, categorias_validas: list[str]) -> str:
+    """Arma el mensaje de cancelación por categoría no permitida, detallando el área, la categoría elegida y las habilitadas."""
+    if categorias_validas:
+        seccion_categorias = "Categorías válidas para tu área:\n" + "\n".join(
+            f"- {categoria}" for categoria in categorias_validas
+        )
+    else:
+        seccion_categorias = "No se encontraron categorías habilitadas para tu área."
+
+    return (
+        "La solicitud fue cancelada porque la categoría seleccionada no está permitida para tu área.\n\n"
+        f"Tu área: {area}\n"
+        f"Categoría seleccionada: {categoria_seleccionada}\n\n"
+        f"{seccion_categorias}\n\n"
+        "Si tenés consultas sobre las categorías habilitadas, comunicate con tu área de Recursos Humanos.\n\n"
+        "Podés enviar /start para iniciar una nueva solicitud."
+    )
+
+
+def fecha_pertenece_al_mes_corriente(fecha_gasto: date) -> bool:
+    """Indica si la fecha del gasto corresponde al mes y año en curso."""
+    hoy = datetime.now().date()
+    return fecha_gasto.year == hoy.year and fecha_gasto.month == hoy.month
+
+
+def aprobar_solicitud_automaticamente(solicitud_id: str) -> None:
+    """Aprueba la solicitud automáticamente por cumplir con la política de gastos vigente.
+
+    No queda nadie asignado porque la resolución fue automática, y se limpian
+    los motivos de cancelación o rechazo, ya que la solicitud fue aceptada.
+    """
+    ahora = _ahora()
+    conexion = base_datos.obtener_conexion()
+    try:
+        modificado_por = _determinar_modificado_por(conexion, solicitud_id)
+
+        with conexion:
+            conexion.execute(
+                """
+                UPDATE solicitudes
+                SET estado_solicitud_codigo = ?,
+                    estado_conversacion_codigo = ?,
+                    usuario_asignado_id = NULL,
+                    motivo_cancelacion = NULL,
+                    motivo_rechazo = NULL,
+                    modificado_por = ?,
+                    modificado_en = ?
+                WHERE id = ?;
+                """,
+                (
+                    estados.ESTADO_SOLICITUD_APROBADA,
+                    estados.ESTADO_CONVERSACION_FINALIZADO,
+                    modificado_por,
+                    ahora,
+                    solicitud_id,
+                ),
+            )
+    finally:
+        conexion.close()
+
+
+def derivar_solicitud_a_supervisor(solicitud_id: str, supervisor_id: str) -> None:
+    """Deriva la solicitud a un supervisor activo para que la revise manualmente."""
+    ahora = _ahora()
+    conexion = base_datos.obtener_conexion()
+    try:
+        modificado_por = _determinar_modificado_por(conexion, solicitud_id)
+
+        with conexion:
+            conexion.execute(
+                """
+                UPDATE solicitudes
+                SET estado_solicitud_codigo = ?,
+                    estado_conversacion_codigo = ?,
+                    usuario_asignado_id = ?,
+                    modificado_por = ?,
+                    modificado_en = ?
+                WHERE id = ?;
+                """,
+                (
+                    estados.ESTADO_SOLICITUD_DERIVADA_SUPERVISOR,
+                    estados.ESTADO_CONVERSACION_ESPERANDO_REVISION_SUPERVISOR,
+                    supervisor_id,
+                    modificado_por,
+                    ahora,
+                    solicitud_id,
+                ),
+            )
+    finally:
+        conexion.close()
+
+
+def validar_politica_y_resolver_solicitud(solicitud_id: str) -> str:
+    """Aplica la política de gastos del área y resuelve la solicitud según el resultado.
+
+    Busca la política activa para el área del solicitante y la categoría
+    elegida. Si no existe, cancela la solicitud porque la categoría no está
+    permitida para esa área e informa el área, la categoría elegida y las
+    categorías habilitadas para el área. Si existe, evalúa de forma
+    independiente los tres motivos que obligan a derivar la solicitud a un
+    supervisor (categoría "Otros", monto por encima del máximo permitido y
+    fecha del gasto fuera del mes en curso) sin detenerse en el primero que
+    encuentre, de modo de poder informar todos los motivos aplicables. Si no
+    corresponde derivar, aprueba la solicitud automáticamente. Si corresponde
+    derivar pero no hay ningún supervisor activo disponible, cancela la
+    solicitud en su lugar.
+
+    Devuelve el mensaje final, ya redactado en español, que debe enviarse a
+    la persona usuaria informándole el resultado de su solicitud.
+    """
+    solicitud = obtener_solicitud_por_id(solicitud_id)
+
+    conexion = base_datos.obtener_conexion()
+    try:
+        solicitante = conexion.execute(
+            """
+            SELECT usuario.area_codigo AS area_codigo, area.descripcion AS area_descripcion
+            FROM usuarios AS usuario
+            JOIN lookup_areas AS area ON area.codigo = usuario.area_codigo
+            WHERE usuario.id = ?;
+            """,
+            (solicitud["solicitante_id"],),
+        ).fetchone()
+        categoria_seleccionada = conexion.execute(
+            "SELECT descripcion FROM lookup_categorias_gasto WHERE codigo = ?;",
+            (solicitud["categoria_gasto_codigo"],),
+        ).fetchone()
+    finally:
+        conexion.close()
+
+    politica = obtener_politica_gasto_activa(solicitante["area_codigo"], solicitud["categoria_gasto_codigo"])
+
+    if politica is None:
+        cancelar_solicitud(solicitud_id, MOTIVO_CANCELACION_CATEGORIA_NO_PERMITIDA)
+        logger.info(
+            "Solicitud %s cancelada: la categoría %s no está permitida para el área %s.",
+            solicitud_id, solicitud["categoria_gasto_codigo"], solicitante["area_codigo"],
+        )
+        categorias_validas = obtener_categorias_validas_por_area(solicitante["area_codigo"])
+        return construir_mensaje_categoria_no_permitida(
+            solicitante["area_descripcion"], categoria_seleccionada["descripcion"], categorias_validas
+        )
+
+    fecha_gasto = date.fromisoformat(solicitud["fecha_gasto"])
+    motivos_derivacion = []
+    if solicitud["categoria_gasto_codigo"] == estados.CATEGORIA_GASTO_OTROS:
+        motivos_derivacion.append(MOTIVO_DERIVACION_CATEGORIA_REVISION_MANUAL)
+    if solicitud["monto"] > politica["monto_maximo"]:
+        motivos_derivacion.append(MOTIVO_DERIVACION_MONTO_SUPERA_LIMITE)
+    if not fecha_pertenece_al_mes_corriente(fecha_gasto):
+        motivos_derivacion.append(MOTIVO_DERIVACION_FECHA_FUERA_DE_MES_CORRIENTE)
+
+    if not motivos_derivacion:
+        aprobar_solicitud_automaticamente(solicitud_id)
+        logger.info("Solicitud %s aprobada automáticamente según la política de gastos vigente.", solicitud_id)
+        return MENSAJE_SOLICITUD_APROBADA_AUTOMATICAMENTE
+
+    supervisor = obtener_supervisor_activo()
+    if supervisor is None:
+        cancelar_solicitud(solicitud_id, MOTIVO_CANCELACION_SIN_SUPERVISOR_ACTIVO)
+        logger.info("Solicitud %s cancelada: no hay un supervisor activo disponible para revisión.", solicitud_id)
+        return MENSAJE_SOLICITUD_CANCELADA_SIN_SUPERVISOR
+
+    derivar_solicitud_a_supervisor(solicitud_id, supervisor["id"])
+    logger.info(
+        "Solicitud %s derivada al supervisor %s para revisión. Motivos: %s.",
+        solicitud_id, supervisor["id"], motivos_derivacion,
+    )
+    return construir_mensaje_derivacion(motivos_derivacion)
