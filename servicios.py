@@ -341,3 +341,70 @@ def obtener_intentos_fecha(solicitud_id: str) -> int:
         return fila["intentos_fecha"] if fila is not None else 0
     finally:
         conexion.close()
+
+
+def registrar_monto_solicitud(solicitud_id: str, monto: float) -> None:
+    """Guarda el monto del gasto y avanza la conversación a la espera del comprobante.
+
+    Se reinicia el contador de intentos fallidos, ya que la validación del
+    monto se superó. La comparación contra el monto máximo permitido por la
+    política de gastos se realiza más adelante, durante la validación de la
+    política, luego de validar el comprobante.
+    """
+    ahora = _ahora()
+    conexion = base_datos.obtener_conexion()
+    try:
+        modificado_por = _determinar_modificado_por(conexion, solicitud_id)
+
+        with conexion:
+            conexion.execute(
+                """
+                UPDATE solicitudes
+                SET monto = ?,
+                    intentos_monto = 0,
+                    estado_conversacion_codigo = ?,
+                    modificado_por = ?,
+                    modificado_en = ?
+                WHERE id = ?;
+                """,
+                (
+                    monto,
+                    estados.ESTADO_CONVERSACION_ESPERANDO_COMPROBANTE,
+                    modificado_por,
+                    ahora,
+                    solicitud_id,
+                ),
+            )
+    finally:
+        conexion.close()
+
+
+def incrementar_intentos_monto(solicitud_id: str) -> int:
+    """Incrementa en uno el contador de intentos fallidos al ingresar el monto del gasto.
+
+    Devuelve el nuevo valor del contador, de forma que quien llama pueda
+    decidir si corresponde reintentar o cancelar la solicitud.
+    """
+    ahora = _ahora()
+    conexion = base_datos.obtener_conexion()
+    try:
+        modificado_por = _determinar_modificado_por(conexion, solicitud_id)
+
+        with conexion:
+            conexion.execute(
+                """
+                UPDATE solicitudes
+                SET intentos_monto = intentos_monto + 1,
+                    modificado_por = ?,
+                    modificado_en = ?
+                WHERE id = ?;
+                """,
+                (modificado_por, ahora, solicitud_id),
+            )
+
+        fila = conexion.execute(
+            "SELECT intentos_monto FROM solicitudes WHERE id = ?;", (solicitud_id,)
+        ).fetchone()
+        return fila["intentos_monto"]
+    finally:
+        conexion.close()

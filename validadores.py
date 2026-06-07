@@ -8,8 +8,11 @@ con un mensaje en español que explica el motivo.
 
 import re
 from datetime import date, datetime
+from decimal import Decimal, InvalidOperation
 
 PATRON_FECHA = re.compile(r"^\d{2}/\d{2}/\d{4}$")
+
+PATRON_MONTO = re.compile(r"^-?\d+([.,]\d+)?$")
 
 
 def validar_fecha_gasto(texto_fecha: str) -> date:
@@ -31,3 +34,36 @@ def validar_fecha_gasto(texto_fecha: str) -> date:
         return datetime.strptime(texto_fecha, "%d/%m/%Y").date()
     except ValueError as error:
         raise ValueError("La fecha ingresada no existe en el calendario. Ingresela en formato DD/MM/AAAA.") from error
+
+
+def validar_monto_gasto(texto_monto: str) -> float:
+    """Valida el texto ingresado como monto del gasto y lo convierte a un número.
+
+    Acepta números positivos con un único separador decimal, ya sea coma
+    (estilo argentino, por ejemplo 1500,50) o punto (por ejemplo 1500.50).
+    No admite separadores de miles, ya que combinarlos con el separador
+    decimal vuelve ambiguo el formato (por ejemplo 1.500,50 o 1,500.50).
+
+    Devuelve un float si el texto representa un número positivo válido. Lanza
+    ValueError con un mensaje en español si el texto está vacío, no respeta
+    el formato esperado, o representa un número cero o negativo.
+    """
+    texto_monto = (texto_monto or "").strip()
+    if not texto_monto:
+        raise ValueError("El monto no puede estar vacío. Ingrese un número positivo, por ejemplo 1500,50.")
+
+    if not PATRON_MONTO.match(texto_monto):
+        raise ValueError(
+            "El formato del monto no es válido. Ingrese un número positivo, "
+            "usando como mucho una coma o un punto decimal, por ejemplo 1500,50 o 1500.50."
+        )
+
+    try:
+        monto = Decimal(texto_monto.replace(",", "."))
+    except InvalidOperation as error:
+        raise ValueError("El monto ingresado no es un número válido.") from error
+
+    if monto <= 0:
+        raise ValueError("El monto debe ser un número positivo mayor a cero.")
+
+    return float(monto)

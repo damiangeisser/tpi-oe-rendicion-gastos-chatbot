@@ -47,7 +47,7 @@ MENSAJE_ACCION_NO_ESPERADA = "Esa acción no corresponde en este momento de tu s
 
 MENSAJE_PEDIR_FECHA = "Ingrese la fecha del gasto en formato DD/MM/AAAA."
 
-MENSAJE_FECHA_REGISTRADA = "Fecha registrada: {fecha}. Ingrese el monto del gasto."
+MENSAJE_FECHA_REGISTRADA = "Fecha registrada: {fecha}."
 
 MENSAJE_FECHA_INVALIDA_REINTENTAR = (
     "La fecha ingresada no es válida. Use el formato DD/MM/AAAA. Intentos restantes: {restantes}."
@@ -55,6 +55,18 @@ MENSAJE_FECHA_INVALIDA_REINTENTAR = (
 
 MENSAJE_SOLICITUD_CANCELADA_POR_INTENTOS_FECHA = (
     "La solicitud fue cancelada porque se alcanzó la cantidad máxima de intentos para ingresar una fecha válida."
+)
+
+MENSAJE_PEDIR_MONTO = "Ingrese el monto del gasto."
+
+MENSAJE_MONTO_REGISTRADO = "Monto registrado: ${monto}. Envíe el comprobante del gasto en formato JPG."
+
+MENSAJE_MONTO_INVALIDO_REINTENTAR = (
+    "El monto ingresado no es válido. Ingrese un número positivo. Intentos restantes: {restantes}."
+)
+
+MENSAJE_SOLICITUD_CANCELADA_POR_INTENTOS_MONTO = (
+    "La solicitud fue cancelada porque se alcanzó la cantidad máxima de intentos para ingresar un monto válido."
 )
 
 MENSAJE_USAR_START = "No tenés una solicitud activa. Enviá /start para iniciar una rendición de gastos."
@@ -72,6 +84,8 @@ MOTIVO_CANCELACION_LEGAJO_INVALIDO = "Legajo inválido o usuario no habilitado."
 MOTIVO_CANCELACION_POR_USUARIO = "El usuario canceló la solicitud mediante el comando /cancelar."
 
 MOTIVO_CANCELACION_INTENTOS_FECHA = "Cantidad máxima de intentos alcanzada al ingresar la fecha del gasto."
+
+MOTIVO_CANCELACION_INTENTOS_MONTO = "Cantidad máxima de intentos alcanzada al ingresar el monto del gasto."
 
 
 def _obtener_telegram_user_id(update: Update) -> str:
@@ -101,6 +115,11 @@ async def _solicitar_fecha(update: Update) -> None:
     await update.effective_message.reply_text(MENSAJE_PEDIR_FECHA)
 
 
+async def _solicitar_monto(update: Update) -> None:
+    """Envía el mensaje pidiendo el monto del gasto."""
+    await update.effective_message.reply_text(MENSAJE_PEDIR_MONTO)
+
+
 async def _continuar_segun_estado(update: Update, solicitud) -> None:
     """Retoma la conversación según el estado de conversación actual de la solicitud."""
     estado_conversacion = solicitud["estado_conversacion_codigo"]
@@ -111,6 +130,8 @@ async def _continuar_segun_estado(update: Update, solicitud) -> None:
         await _solicitar_categoria(update)
     elif estado_conversacion == estados.ESTADO_CONVERSACION_ESPERANDO_FECHA:
         await _solicitar_fecha(update)
+    elif estado_conversacion == estados.ESTADO_CONVERSACION_ESPERANDO_MONTO:
+        await _solicitar_monto(update)
     else:
         await update.effective_message.reply_text(MENSAJE_ESPERANDO_PROXIMO_PASO)
 
@@ -157,7 +178,36 @@ async def _procesar_fecha(update: Update, solicitud) -> None:
         return
 
     servicios.registrar_fecha_solicitud(solicitud["id"], fecha_gasto)
-    await update.message.reply_text(MENSAJE_FECHA_REGISTRADA.format(fecha=fecha_gasto.strftime("%d/%m/%Y")))
+    confirmacion = MENSAJE_FECHA_REGISTRADA.format(fecha=fecha_gasto.strftime("%d/%m/%Y"))
+    await update.message.reply_text(f"{confirmacion} {MENSAJE_PEDIR_MONTO}")
+
+
+async def _procesar_monto(update: Update, solicitud) -> None:
+    """Valida el monto del gasto recibido y avanza, reintenta o cancela la solicitud según el resultado.
+
+    La validación realizada acá se limita a que el monto sea un número
+    positivo bien formado. La comparación contra el monto máximo permitido
+    por la política de gastos se realiza más adelante, durante la validación
+    de la política, luego de validar el comprobante.
+    """
+    texto_monto = update.message.text.strip()
+
+    try:
+        monto = validadores.validar_monto_gasto(texto_monto)
+    except ValueError:
+        intentos = servicios.incrementar_intentos_monto(solicitud["id"])
+
+        if intentos >= estados.MAX_INTENTOS_VALIDACION:
+            servicios.cancelar_solicitud(solicitud["id"], MOTIVO_CANCELACION_INTENTOS_MONTO)
+            await update.message.reply_text(MENSAJE_SOLICITUD_CANCELADA_POR_INTENTOS_MONTO)
+            return
+
+        restantes = estados.MAX_INTENTOS_VALIDACION - intentos
+        await update.message.reply_text(MENSAJE_MONTO_INVALIDO_REINTENTAR.format(restantes=restantes))
+        return
+
+    servicios.registrar_monto_solicitud(solicitud["id"], monto)
+    await update.message.reply_text(MENSAJE_MONTO_REGISTRADO.format(monto=f"{monto:.2f}"))
 
 
 async def manejar_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -210,6 +260,10 @@ async def manejar_mensaje_texto(update: Update, context: ContextTypes.DEFAULT_TY
 
     if estado_conversacion == estados.ESTADO_CONVERSACION_ESPERANDO_FECHA:
         await _procesar_fecha(update, solicitud)
+        return
+
+    if estado_conversacion == estados.ESTADO_CONVERSACION_ESPERANDO_MONTO:
+        await _procesar_monto(update, solicitud)
         return
 
     await update.message.reply_text(MENSAJE_ESPERANDO_PROXIMO_PASO)
