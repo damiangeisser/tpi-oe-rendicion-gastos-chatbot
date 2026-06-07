@@ -11,7 +11,13 @@ import sys
 from pathlib import Path
 
 from telegram.error import TelegramError
-from telegram.ext import Application, CommandHandler, MessageHandler, filters
+from telegram.ext import (
+    Application,
+    CallbackQueryHandler,
+    CommandHandler,
+    MessageHandler,
+    filters,
+)
 
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
@@ -99,6 +105,9 @@ def main() -> None:
     aplicacion.add_handler(CommandHandler("cancelar", manejadores_bot.manejar_cancelar))
     aplicacion.add_handler(
         MessageHandler(filters.TEXT & ~filters.COMMAND, manejadores_bot.manejar_mensaje_texto)
+    )
+    aplicacion.add_handler(
+        CallbackQueryHandler(manejadores_bot.manejar_seleccion_categoria, pattern=r"^categoria:\d+$")
     )
 
     try:

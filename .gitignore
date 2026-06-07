@@ -21,6 +21,9 @@ env/
 # Logs
 *.log
 
+# Exportaciones generadas por exportar_datos.py
+exportaciones/
+
 # IDE / editores
 .vscode/
 .idea/

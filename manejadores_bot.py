@@ -36,6 +36,16 @@ MENSAJE_LEGAJO_VALIDO = "¡Hola, {nombre} {apellido}! Validamos tu legajo correc
 
 MENSAJE_PEDIR_CATEGORIA = "Elegí la categoría del gasto que querés rendir:"
 
+MENSAJE_CATEGORIA_REGISTRADA = "Categoría registrada: {categoria}."
+
+MENSAJE_CATEGORIA_NO_DISPONIBLE = (
+    "Esa categoría ya no está disponible. Por favor, elegí una de las opciones vigentes."
+)
+
+MENSAJE_ACCION_NO_ESPERADA = "Esa acción no corresponde en este momento de tu solicitud."
+
+MENSAJE_PEDIR_FECHA = "Ingrese la fecha del gasto en formato DD/MM/AAAA."
+
 MENSAJE_USAR_START = "No tenés una solicitud activa. Enviá /start para iniciar una rendición de gastos."
 
 MENSAJE_ESPERANDO_PROXIMO_PASO = (
@@ -70,7 +80,12 @@ async def _solicitar_categoria(update: Update) -> None:
             for categoria in categorias
         ]
     )
-    await update.message.reply_text(MENSAJE_PEDIR_CATEGORIA, reply_markup=teclado)
+    await update.effective_message.reply_text(MENSAJE_PEDIR_CATEGORIA, reply_markup=teclado)
+
+
+async def _solicitar_fecha(update: Update) -> None:
+    """Envía el mensaje pidiendo la fecha del gasto en el formato esperado."""
+    await update.effective_message.reply_text(MENSAJE_PEDIR_FECHA)
 
 
 async def _continuar_segun_estado(update: Update, solicitud) -> None:
@@ -81,8 +96,10 @@ async def _continuar_segun_estado(update: Update, solicitud) -> None:
         await _solicitar_legajo(update)
     elif estado_conversacion == estados.ESTADO_CONVERSACION_ESPERANDO_CATEGORIA:
         await _solicitar_categoria(update)
+    elif estado_conversacion == estados.ESTADO_CONVERSACION_ESPERANDO_FECHA:
+        await _solicitar_fecha(update)
     else:
-        await update.message.reply_text(MENSAJE_ESPERANDO_PROXIMO_PASO)
+        await update.effective_message.reply_text(MENSAJE_ESPERANDO_PROXIMO_PASO)
 
 
 async def _procesar_legajo(update: Update, solicitud) -> None:
@@ -151,3 +168,31 @@ async def manejar_mensaje_texto(update: Update, context: ContextTypes.DEFAULT_TY
         return
 
     await update.message.reply_text(MENSAJE_ESPERANDO_PROXIMO_PASO)
+
+
+async def manejar_seleccion_categoria(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Procesa la selección de una categoría de gasto realizada con los botones en línea."""
+    consulta = update.callback_query
+    await consulta.answer()
+
+    telegram_user_id = _obtener_telegram_user_id(update)
+    solicitud = servicios.obtener_solicitud_activa_por_telegram(telegram_user_id)
+
+    if solicitud is None:
+        await update.effective_message.reply_text(MENSAJE_USAR_START)
+        return
+
+    if solicitud["estado_conversacion_codigo"] != estados.ESTADO_CONVERSACION_ESPERANDO_CATEGORIA:
+        await update.effective_message.reply_text(MENSAJE_ACCION_NO_ESPERADA)
+        return
+
+    categoria_codigo = int(consulta.data.split(":", 1)[1])
+    categoria = servicios.obtener_categoria_activa_por_codigo(categoria_codigo)
+
+    if categoria is None:
+        await update.effective_message.reply_text(MENSAJE_CATEGORIA_NO_DISPONIBLE)
+        return
+
+    servicios.registrar_categoria_solicitud(solicitud["id"], categoria_codigo)
+    confirmacion = MENSAJE_CATEGORIA_REGISTRADA.format(categoria=categoria["descripcion"])
+    await update.effective_message.reply_text(f"{confirmacion} {MENSAJE_PEDIR_FECHA}")

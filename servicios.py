@@ -194,3 +194,65 @@ def listar_categorias_activas() -> list[sqlite3.Row]:
         ).fetchall()
     finally:
         conexion.close()
+
+
+def obtener_categoria_activa_por_codigo(categoria_codigo: int) -> sqlite3.Row | None:
+    """Busca una categoría de gasto activa por su código. Devuelve None si no existe o está inactiva."""
+    conexion = base_datos.obtener_conexion()
+    try:
+        return conexion.execute(
+            """
+            SELECT * FROM lookup_categorias_gasto
+            WHERE codigo = ?
+              AND activo = 1
+            LIMIT 1;
+            """,
+            (categoria_codigo,),
+        ).fetchone()
+    finally:
+        conexion.close()
+
+
+def registrar_categoria_solicitud(solicitud_id: str, categoria_codigo: int) -> None:
+    """Guarda la categoría elegida y avanza la conversación a la espera de la fecha del gasto.
+
+    El modificador registrado es el solicitante si ya fue identificado; si
+    todavía no lo fue, se utiliza el usuario Sistema como respaldo.
+    """
+    ahora = _ahora()
+    conexion = base_datos.obtener_conexion()
+    try:
+        fila_solicitud = conexion.execute(
+            "SELECT solicitante_id FROM solicitudes WHERE id = ?;", (solicitud_id,)
+        ).fetchone()
+        solicitante_id = fila_solicitud["solicitante_id"] if fila_solicitud is not None else None
+
+        if solicitante_id is not None:
+            modificado_por = solicitante_id
+        else:
+            fila_sistema = conexion.execute(
+                "SELECT id FROM usuarios WHERE rol_codigo = ? AND activo = 1 LIMIT 1;",
+                (estados.ROL_SISTEMA,),
+            ).fetchone()
+            modificado_por = fila_sistema["id"] if fila_sistema is not None else None
+
+        with conexion:
+            conexion.execute(
+                """
+                UPDATE solicitudes
+                SET categoria_gasto_codigo = ?,
+                    estado_conversacion_codigo = ?,
+                    modificado_por = ?,
+                    modificado_en = ?
+                WHERE id = ?;
+                """,
+                (
+                    categoria_codigo,
+                    estados.ESTADO_CONVERSACION_ESPERANDO_FECHA,
+                    modificado_por,
+                    ahora,
+                    solicitud_id,
+                ),
+            )
+    finally:
+        conexion.close()
