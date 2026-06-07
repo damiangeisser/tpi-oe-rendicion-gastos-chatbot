@@ -408,3 +408,113 @@ def incrementar_intentos_monto(solicitud_id: str) -> int:
         return fila["intentos_monto"]
     finally:
         conexion.close()
+
+
+def registrar_comprobante_solicitud(solicitud_id: str, comprobante_file_id: str) -> None:
+    """Guarda el identificador de Telegram del comprobante recibido y finaliza la conversación.
+
+    Esta etapa solo valida los requisitos técnicos del archivo (formato JPG y
+    tamaño máximo) y reinicia el contador de intentos fallidos. Con esto, ya
+    se cuenta con todos los datos necesarios de la solicitud: la conversación
+    se da por finalizada (no se solicita más información a la persona usuaria)
+    y se libera la asignación, ya que todavía no hay nadie a cargo de
+    resolverla. La solicitud en sí permanece en curso a nivel administrativo,
+    porque la simulación de OCR y la validación de la política de gastos se
+    realizan en etapas posteriores.
+    """
+    ahora = _ahora()
+    conexion = base_datos.obtener_conexion()
+    try:
+        modificado_por = _determinar_modificado_por(conexion, solicitud_id)
+
+        with conexion:
+            conexion.execute(
+                """
+                UPDATE solicitudes
+                SET comprobante_file_id = ?,
+                    intentos_comprobante = 0,
+                    estado_conversacion_codigo = ?,
+                    usuario_asignado_id = NULL,
+                    modificado_por = ?,
+                    modificado_en = ?
+                WHERE id = ?;
+                """,
+                (
+                    comprobante_file_id,
+                    estados.ESTADO_CONVERSACION_FINALIZADO,
+                    modificado_por,
+                    ahora,
+                    solicitud_id,
+                ),
+            )
+    finally:
+        conexion.close()
+
+
+def obtener_ultima_solicitud_por_telegram(telegram_user_id: str) -> sqlite3.Row | None:
+    """Busca la solicitud más reciente del usuario de Telegram, sin importar su estado.
+
+    A diferencia de obtener_solicitud_activa_por_telegram, esta función
+    también puede devolver solicitudes con la conversación finalizada. Sirve
+    para detectar el caso particular de una solicitud que ya recibió todos
+    sus datos (conversación finalizada) pero todavía espera resolución
+    administrativa.
+    """
+    conexion = base_datos.obtener_conexion()
+    try:
+        return conexion.execute(
+            """
+            SELECT * FROM solicitudes
+            WHERE telegram_user_id = ?
+            ORDER BY creado_en DESC
+            LIMIT 1;
+            """,
+            (telegram_user_id,),
+        ).fetchone()
+    finally:
+        conexion.close()
+
+
+def solicitud_tiene_datos_completos_pendiente_resolucion(solicitud: sqlite3.Row) -> bool:
+    """Indica si una solicitud ya recibió todos sus datos y espera resolución administrativa.
+
+    Esto ocurre cuando la conversación está finalizada (ya se recibió un
+    comprobante válido), pero la solicitud sigue en curso a nivel
+    administrativo porque todavía nadie la resolvió.
+    """
+    return (
+        solicitud["estado_solicitud_codigo"] == estados.ESTADO_SOLICITUD_EN_CURSO
+        and solicitud["estado_conversacion_codigo"] == estados.ESTADO_CONVERSACION_FINALIZADO
+        and solicitud["comprobante_file_id"] is not None
+    )
+
+
+def incrementar_intentos_comprobante(solicitud_id: str) -> int:
+    """Incrementa en uno el contador de intentos fallidos al enviar el comprobante del gasto.
+
+    Devuelve el nuevo valor del contador, de forma que quien llama pueda
+    decidir si corresponde reintentar o cancelar la solicitud.
+    """
+    ahora = _ahora()
+    conexion = base_datos.obtener_conexion()
+    try:
+        modificado_por = _determinar_modificado_por(conexion, solicitud_id)
+
+        with conexion:
+            conexion.execute(
+                """
+                UPDATE solicitudes
+                SET intentos_comprobante = intentos_comprobante + 1,
+                    modificado_por = ?,
+                    modificado_en = ?
+                WHERE id = ?;
+                """,
+                (modificado_por, ahora, solicitud_id),
+            )
+
+        fila = conexion.execute(
+            "SELECT intentos_comprobante FROM solicitudes WHERE id = ?;", (solicitud_id,)
+        ).fetchone()
+        return fila["intentos_comprobante"]
+    finally:
+        conexion.close()

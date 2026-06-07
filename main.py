@@ -104,7 +104,7 @@ def main() -> None:
     aplicacion.add_handler(CommandHandler("ayuda", manejadores_bot.manejar_ayuda))
     aplicacion.add_handler(CommandHandler("cancelar", manejadores_bot.manejar_cancelar))
     aplicacion.add_handler(
-        MessageHandler(filters.TEXT & ~filters.COMMAND, manejadores_bot.manejar_mensaje_texto)
+        MessageHandler(~filters.COMMAND, manejadores_bot.manejar_mensaje)
     )
     aplicacion.add_handler(
         CallbackQueryHandler(manejadores_bot.manejar_seleccion_categoria, pattern=r"^categoria:\d+$")

@@ -14,6 +14,10 @@ PATRON_FECHA = re.compile(r"^\d{2}/\d{2}/\d{4}$")
 
 PATRON_MONTO = re.compile(r"^-?\d+([.,]\d+)?$")
 
+EXTENSIONES_JPG = (".jpg", ".jpeg")
+
+MIME_TYPES_JPG = ("image/jpeg", "image/jpg")
+
 
 def validar_fecha_gasto(texto_fecha: str) -> date:
     """Valida el texto ingresado como fecha del gasto en formato DD/MM/AAAA.
@@ -67,3 +71,44 @@ def validar_monto_gasto(texto_monto: str) -> float:
         raise ValueError("El monto debe ser un número positivo mayor a cero.")
 
     return float(monto)
+
+
+def validar_nombre_archivo_jpg(nombre_archivo: str) -> None:
+    """Valida que el nombre de archivo informado corresponda a una imagen JPG/JPEG.
+
+    No devuelve ningún valor; lanza ValueError con un mensaje en español si
+    el nombre está vacío, ausente o no tiene extensión .jpg/.jpeg
+    (sin distinguir mayúsculas de minúsculas).
+    """
+    nombre_archivo = (nombre_archivo or "").strip()
+    if not nombre_archivo:
+        raise ValueError("El archivo enviado no tiene un nombre válido. Debe enviar un archivo JPG.")
+
+    if not nombre_archivo.lower().endswith(EXTENSIONES_JPG):
+        raise ValueError("El archivo debe tener formato JPG o JPEG (extensión .jpg o .jpeg).")
+
+
+def validar_mime_type_jpg(mime_type: str) -> None:
+    """Valida que el tipo MIME informado corresponda a una imagen JPG/JPEG.
+
+    No devuelve ningún valor; lanza ValueError con un mensaje en español si
+    el tipo MIME está vacío, ausente o no es image/jpeg (por ejemplo,
+    application/pdf o image/png).
+    """
+    mime_type = (mime_type or "").strip().lower()
+    if not mime_type:
+        raise ValueError("No se pudo determinar el tipo de archivo enviado. Debe enviar un archivo JPG.")
+
+    if mime_type not in MIME_TYPES_JPG:
+        raise ValueError("El tipo de archivo enviado no corresponde a una imagen JPG/JPEG.")
+
+
+def validar_tamano_archivo(tamano_bytes: int, maximo_bytes: int) -> None:
+    """Valida que el tamaño del archivo no supere el máximo permitido.
+
+    No devuelve ningún valor; lanza ValueError con un mensaje en español si
+    el tamaño en bytes supera el máximo configurado para los comprobantes.
+    """
+    if tamano_bytes > maximo_bytes:
+        maximo_mb = maximo_bytes / (1024 * 1024)
+        raise ValueError(f"El archivo enviado supera el tamaño máximo permitido de {maximo_mb:.0f} MB.")
