@@ -7,7 +7,7 @@ los manejadores de Telegram no necesitan conocer detalles de SQL ni de SQLite.
 
 import sqlite3
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 import base_datos
 import estados
@@ -16,6 +16,26 @@ import estados
 def _ahora() -> str:
     """Devuelve la fecha y hora actual en formato ISO con precisión de segundos."""
     return datetime.now().isoformat(timespec="seconds")
+
+
+def _determinar_modificado_por(conexion: sqlite3.Connection, solicitud_id: str) -> str | None:
+    """Determina quién debe figurar como modificador de la solicitud.
+
+    Si ya se identificó al solicitante, es esa persona quien realiza la
+    acción; en caso contrario, se utiliza el usuario Sistema como respaldo.
+    """
+    fila_solicitud = conexion.execute(
+        "SELECT solicitante_id FROM solicitudes WHERE id = ?;", (solicitud_id,)
+    ).fetchone()
+    solicitante_id = fila_solicitud["solicitante_id"] if fila_solicitud is not None else None
+    if solicitante_id is not None:
+        return solicitante_id
+
+    fila_sistema = conexion.execute(
+        "SELECT id FROM usuarios WHERE rol_codigo = ? AND activo = 1 LIMIT 1;",
+        (estados.ROL_SISTEMA,),
+    ).fetchone()
+    return fila_sistema["id"] if fila_sistema is not None else None
 
 
 def obtener_usuario_sistema() -> sqlite3.Row | None:
@@ -222,19 +242,7 @@ def registrar_categoria_solicitud(solicitud_id: str, categoria_codigo: int) -> N
     ahora = _ahora()
     conexion = base_datos.obtener_conexion()
     try:
-        fila_solicitud = conexion.execute(
-            "SELECT solicitante_id FROM solicitudes WHERE id = ?;", (solicitud_id,)
-        ).fetchone()
-        solicitante_id = fila_solicitud["solicitante_id"] if fila_solicitud is not None else None
-
-        if solicitante_id is not None:
-            modificado_por = solicitante_id
-        else:
-            fila_sistema = conexion.execute(
-                "SELECT id FROM usuarios WHERE rol_codigo = ? AND activo = 1 LIMIT 1;",
-                (estados.ROL_SISTEMA,),
-            ).fetchone()
-            modificado_por = fila_sistema["id"] if fila_sistema is not None else None
+        modificado_por = _determinar_modificado_por(conexion, solicitud_id)
 
         with conexion:
             conexion.execute(
@@ -254,5 +262,82 @@ def registrar_categoria_solicitud(solicitud_id: str, categoria_codigo: int) -> N
                     solicitud_id,
                 ),
             )
+    finally:
+        conexion.close()
+
+
+def registrar_fecha_solicitud(solicitud_id: str, fecha_gasto: date) -> None:
+    """Guarda la fecha del gasto y avanza la conversación a la espera del monto.
+
+    La fecha se almacena en formato ISO (AAAA-MM-DD) y se reinicia el contador
+    de intentos fallidos, ya que la validación del formato se superó.
+    """
+    ahora = _ahora()
+    conexion = base_datos.obtener_conexion()
+    try:
+        modificado_por = _determinar_modificado_por(conexion, solicitud_id)
+
+        with conexion:
+            conexion.execute(
+                """
+                UPDATE solicitudes
+                SET fecha_gasto = ?,
+                    intentos_fecha = 0,
+                    estado_conversacion_codigo = ?,
+                    modificado_por = ?,
+                    modificado_en = ?
+                WHERE id = ?;
+                """,
+                (
+                    fecha_gasto.isoformat(),
+                    estados.ESTADO_CONVERSACION_ESPERANDO_MONTO,
+                    modificado_por,
+                    ahora,
+                    solicitud_id,
+                ),
+            )
+    finally:
+        conexion.close()
+
+
+def incrementar_intentos_fecha(solicitud_id: str) -> int:
+    """Incrementa en uno el contador de intentos fallidos al ingresar la fecha del gasto.
+
+    Devuelve el nuevo valor del contador, de forma que quien llama pueda
+    decidir si corresponde reintentar o cancelar la solicitud.
+    """
+    ahora = _ahora()
+    conexion = base_datos.obtener_conexion()
+    try:
+        modificado_por = _determinar_modificado_por(conexion, solicitud_id)
+
+        with conexion:
+            conexion.execute(
+                """
+                UPDATE solicitudes
+                SET intentos_fecha = intentos_fecha + 1,
+                    modificado_por = ?,
+                    modificado_en = ?
+                WHERE id = ?;
+                """,
+                (modificado_por, ahora, solicitud_id),
+            )
+
+        fila = conexion.execute(
+            "SELECT intentos_fecha FROM solicitudes WHERE id = ?;", (solicitud_id,)
+        ).fetchone()
+        return fila["intentos_fecha"]
+    finally:
+        conexion.close()
+
+
+def obtener_intentos_fecha(solicitud_id: str) -> int:
+    """Devuelve la cantidad actual de intentos fallidos registrados al ingresar la fecha del gasto."""
+    conexion = base_datos.obtener_conexion()
+    try:
+        fila = conexion.execute(
+            "SELECT intentos_fecha FROM solicitudes WHERE id = ?;", (solicitud_id,)
+        ).fetchone()
+        return fila["intentos_fecha"] if fila is not None else 0
     finally:
         conexion.close()

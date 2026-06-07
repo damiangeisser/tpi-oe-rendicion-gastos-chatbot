@@ -10,6 +10,7 @@ from telegram.ext import ContextTypes
 
 import estados
 import servicios
+import validadores
 
 MENSAJE_BIENVENIDA = (
     "¡Hola! Soy el bot de rendición de gastos internos.\n\n"
@@ -46,6 +47,16 @@ MENSAJE_ACCION_NO_ESPERADA = "Esa acción no corresponde en este momento de tu s
 
 MENSAJE_PEDIR_FECHA = "Ingrese la fecha del gasto en formato DD/MM/AAAA."
 
+MENSAJE_FECHA_REGISTRADA = "Fecha registrada: {fecha}. Ingrese el monto del gasto."
+
+MENSAJE_FECHA_INVALIDA_REINTENTAR = (
+    "La fecha ingresada no es válida. Use el formato DD/MM/AAAA. Intentos restantes: {restantes}."
+)
+
+MENSAJE_SOLICITUD_CANCELADA_POR_INTENTOS_FECHA = (
+    "La solicitud fue cancelada porque se alcanzó la cantidad máxima de intentos para ingresar una fecha válida."
+)
+
 MENSAJE_USAR_START = "No tenés una solicitud activa. Enviá /start para iniciar una rendición de gastos."
 
 MENSAJE_ESPERANDO_PROXIMO_PASO = (
@@ -59,6 +70,8 @@ MENSAJE_SOLICITUD_CANCELADA_POR_USUARIO = "Tu solicitud fue cancelada. Si queré
 MOTIVO_CANCELACION_LEGAJO_INVALIDO = "Legajo inválido o usuario no habilitado."
 
 MOTIVO_CANCELACION_POR_USUARIO = "El usuario canceló la solicitud mediante el comando /cancelar."
+
+MOTIVO_CANCELACION_INTENTOS_FECHA = "Cantidad máxima de intentos alcanzada al ingresar la fecha del gasto."
 
 
 def _obtener_telegram_user_id(update: Update) -> str:
@@ -119,6 +132,34 @@ async def _procesar_legajo(update: Update, solicitud) -> None:
     await _solicitar_categoria(update)
 
 
+async def _procesar_fecha(update: Update, solicitud) -> None:
+    """Valida la fecha del gasto recibida y avanza, reintenta o cancela la solicitud según el resultado.
+
+    La validación realizada acá se limita al formato y a que la fecha exista
+    en el calendario. Las reglas de negocio sobre qué fechas son aceptables
+    (por ejemplo, que correspondan al mes en curso) se aplican más adelante,
+    durante la validación de la política de gastos.
+    """
+    texto_fecha = update.message.text.strip()
+
+    try:
+        fecha_gasto = validadores.validar_fecha_gasto(texto_fecha)
+    except ValueError:
+        intentos = servicios.incrementar_intentos_fecha(solicitud["id"])
+
+        if intentos >= estados.MAX_INTENTOS_VALIDACION:
+            servicios.cancelar_solicitud(solicitud["id"], MOTIVO_CANCELACION_INTENTOS_FECHA)
+            await update.message.reply_text(MENSAJE_SOLICITUD_CANCELADA_POR_INTENTOS_FECHA)
+            return
+
+        restantes = estados.MAX_INTENTOS_VALIDACION - intentos
+        await update.message.reply_text(MENSAJE_FECHA_INVALIDA_REINTENTAR.format(restantes=restantes))
+        return
+
+    servicios.registrar_fecha_solicitud(solicitud["id"], fecha_gasto)
+    await update.message.reply_text(MENSAJE_FECHA_REGISTRADA.format(fecha=fecha_gasto.strftime("%d/%m/%Y")))
+
+
 async def manejar_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Inicia una nueva solicitud o retoma la solicitud activa del usuario de Telegram."""
     telegram_user_id = _obtener_telegram_user_id(update)
@@ -165,6 +206,10 @@ async def manejar_mensaje_texto(update: Update, context: ContextTypes.DEFAULT_TY
 
     if estado_conversacion == estados.ESTADO_CONVERSACION_ESPERANDO_LEGAJO:
         await _procesar_legajo(update, solicitud)
+        return
+
+    if estado_conversacion == estados.ESTADO_CONVERSACION_ESPERANDO_FECHA:
+        await _procesar_fecha(update, solicitud)
         return
 
     await update.message.reply_text(MENSAJE_ESPERANDO_PROXIMO_PASO)
