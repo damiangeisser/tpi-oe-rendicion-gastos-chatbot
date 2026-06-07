@@ -10,9 +10,8 @@ import sqlite3
 import sys
 from pathlib import Path
 
-from telegram import Update
 from telegram.error import TelegramError
-from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
@@ -35,38 +34,7 @@ logger.info(
 )
 
 import base_datos
-
-MENSAJE_BIENVENIDA = (
-    "¡Hola! Soy el bot de rendición de gastos internos.\n\n"
-    "Estoy activo y voy a ayudarte a iniciar una solicitud de "
-    "reembolso de gastos."
-)
-
-MENSAJE_AYUDA = (
-    "Comandos disponibles:\n"
-    "/start - Inicia una solicitud de rendición de gastos.\n"
-    "/ayuda - Muestra este mensaje de ayuda.\n"
-    "/cancelar - Cancela la solicitud en curso."
-)
-
-MENSAJE_CANCELAR = (
-    "La cancelación de solicitudes se implementará en una próxima etapa."
-)
-
-
-async def manejar_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Responde al comando /start con un mensaje de bienvenida."""
-    await update.message.reply_text(MENSAJE_BIENVENIDA)
-
-
-async def manejar_ayuda(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Responde al comando /ayuda con la lista de comandos disponibles."""
-    await update.message.reply_text(MENSAJE_AYUDA)
-
-
-async def manejar_cancelar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Responde al comando /cancelar con un mensaje provisorio."""
-    await update.message.reply_text(MENSAJE_CANCELAR)
+import manejadores_bot
 
 
 def verificar_base_datos() -> None:
@@ -126,9 +94,12 @@ def main() -> None:
         .build()
     )
 
-    aplicacion.add_handler(CommandHandler("start", manejar_start))
-    aplicacion.add_handler(CommandHandler("ayuda", manejar_ayuda))
-    aplicacion.add_handler(CommandHandler("cancelar", manejar_cancelar))
+    aplicacion.add_handler(CommandHandler("start", manejadores_bot.manejar_start))
+    aplicacion.add_handler(CommandHandler("ayuda", manejadores_bot.manejar_ayuda))
+    aplicacion.add_handler(CommandHandler("cancelar", manejadores_bot.manejar_cancelar))
+    aplicacion.add_handler(
+        MessageHandler(filters.TEXT & ~filters.COMMAND, manejadores_bot.manejar_mensaje_texto)
+    )
 
     try:
         logger.info("Iniciando el polling de Telegram...")
