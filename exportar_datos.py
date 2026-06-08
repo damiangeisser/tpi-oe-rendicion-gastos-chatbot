@@ -33,6 +33,7 @@ TABLAS_A_EXPORTAR = (
     "lookup_estados_solicitud",
     "lookup_estados_conversacion",
     "usuarios",
+    "usuarios_telegram",
     "politicas_gastos",
     "solicitudes",
 )

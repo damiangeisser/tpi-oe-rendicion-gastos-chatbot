@@ -265,4 +265,12 @@ INSERT INTO politicas_gastos (
 ('532890cc-2f58-4d0b-8146-44a3f8a1a576', 7, 3, 220000.00, 1, 1, '219c931b-b3d4-4364-a3cb-2c9d94578482', '219c931b-b3d4-4364-a3cb-2c9d94578482', '2026-01-01T00:00:00', '2026-01-01T00:00:00'),
 ('f4b8edac-a1d1-48ea-9b31-d5b394c60118', 7, 5, 180000.00, 1, 1, '219c931b-b3d4-4364-a3cb-2c9d94578482', '219c931b-b3d4-4364-a3cb-2c9d94578482', '2026-01-01T00:00:00', '2026-01-01T00:00:00');
 
+-- ============================================================
+-- VÍNCULOS DE IDENTIDAD CON TELEGRAM
+-- La tabla usuarios_telegram no se precarga con datos iniciales porque
+-- los telegram_user_id dependen de las cuentas reales que interactúan
+-- con el bot. Los vínculos se crean dinámicamente cuando un usuario
+-- valida correctamente su legajo.
+-- ============================================================
+
 COMMIT;

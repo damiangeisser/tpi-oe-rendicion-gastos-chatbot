@@ -53,6 +53,147 @@ def obtener_usuario_sistema() -> sqlite3.Row | None:
         conexion.close()
 
 
+def vincular_usuario_telegram(usuario_id: str, telegram_user_id: str) -> None:
+    """Crea o actualiza el vínculo entre un usuario interno y su cuenta de Telegram.
+
+    En este prototipo la relación es estrictamente uno a uno (ambas columnas
+    son UNIQUE): una cuenta de Telegram corresponde a un único usuario interno
+    y viceversa. Por eso, antes de fijar el nuevo par, se eliminan los
+    vínculos existentes que choquen con él en cualquiera de sus dos columnas
+    (por ejemplo, si la cuenta ya estaba vinculada a otro usuario, o si el
+    usuario ya estaba vinculado a otra cuenta): dejarlos activos impediría
+    crear el vínculo correcto sin violar las restricciones UNIQUE. Si ya
+    existía exactamente el mismo par, se reutiliza esa fila y solo se
+    actualiza su fecha de modificación. El propio usuario identificado figura
+    como responsable de la operación, ya que es quien valida su legajo.
+    """
+    ahora = _ahora()
+    conexion = base_datos.obtener_conexion()
+    try:
+        with conexion:
+            conexion.execute(
+                """
+                DELETE FROM usuarios_telegram
+                WHERE (usuario_id = ? OR telegram_user_id = ?)
+                  AND NOT (usuario_id = ? AND telegram_user_id = ?);
+                """,
+                (usuario_id, telegram_user_id, usuario_id, telegram_user_id),
+            )
+
+            vinculo = conexion.execute(
+                "SELECT id FROM usuarios_telegram WHERE usuario_id = ? AND telegram_user_id = ?;",
+                (usuario_id, telegram_user_id),
+            ).fetchone()
+
+            if vinculo is not None:
+                conexion.execute(
+                    """
+                    UPDATE usuarios_telegram
+                    SET activo = 1,
+                        modificado_por = ?,
+                        modificado_en = ?
+                    WHERE id = ?;
+                    """,
+                    (usuario_id, ahora, vinculo["id"]),
+                )
+            else:
+                conexion.execute(
+                    """
+                    INSERT INTO usuarios_telegram (
+                        id, usuario_id, telegram_user_id, activo,
+                        creado_por, modificado_por, creado_en, modificado_en
+                    ) VALUES (?, ?, ?, 1, ?, ?, ?, ?);
+                    """,
+                    (str(uuid.uuid4()), usuario_id, telegram_user_id, usuario_id, usuario_id, ahora, ahora),
+                )
+    finally:
+        conexion.close()
+
+
+def obtener_usuario_por_telegram(telegram_user_id: str) -> sqlite3.Row | None:
+    """Busca el usuario interno activo vinculado a una cuenta de Telegram, si existe."""
+    conexion = base_datos.obtener_conexion()
+    try:
+        return conexion.execute(
+            """
+            SELECT usuario.*
+            FROM usuarios_telegram AS vinculo
+            JOIN usuarios AS usuario ON usuario.id = vinculo.usuario_id
+            WHERE vinculo.telegram_user_id = ?
+              AND vinculo.activo = 1
+              AND usuario.activo = 1
+            LIMIT 1;
+            """,
+            (telegram_user_id,),
+        ).fetchone()
+    finally:
+        conexion.close()
+
+
+def obtener_supervisor_por_telegram(telegram_user_id: str) -> sqlite3.Row | None:
+    """Busca el supervisor activo vinculado a una cuenta de Telegram, si existe."""
+    usuario = obtener_usuario_por_telegram(telegram_user_id)
+    if usuario is not None and usuario["rol_codigo"] == estados.ROL_SUPERVISOR:
+        return usuario
+    return None
+
+
+def usuario_es_supervisor_telegram(telegram_user_id: str) -> bool:
+    """Indica si la cuenta de Telegram está vinculada a un supervisor activo."""
+    return obtener_supervisor_por_telegram(telegram_user_id) is not None
+
+
+def obtener_vinculo_telegram_activo(telegram_user_id: str) -> sqlite3.Row | None:
+    """Busca el vínculo activo entre una cuenta de Telegram y un usuario interno, si existe.
+
+    A diferencia de obtener_usuario_por_telegram, devuelve la fila de
+    usuarios_telegram (no la del usuario interno): sirve para saber si la
+    cuenta de Telegram tiene una sesión de identidad abierta, sin importar
+    si el usuario vinculado sigue activo.
+    """
+    conexion = base_datos.obtener_conexion()
+    try:
+        return conexion.execute(
+            "SELECT * FROM usuarios_telegram WHERE telegram_user_id = ? AND activo = 1 LIMIT 1;",
+            (telegram_user_id,),
+        ).fetchone()
+    finally:
+        conexion.close()
+
+
+def desactivar_vinculo_telegram(telegram_user_id: str) -> None:
+    """Cierra la sesión de identidad de una cuenta de Telegram desactivando su vínculo, sin eliminarlo.
+
+    Permite que la cuenta vuelva a identificarse desde cero mediante /start
+    sin perder el historial del vínculo anterior. El propio usuario vinculado
+    queda registrado como responsable del cierre, ya que es quien decide
+    finalizar su sesión.
+    """
+    ahora = _ahora()
+    conexion = base_datos.obtener_conexion()
+    try:
+        with conexion:
+            vinculo = conexion.execute(
+                "SELECT * FROM usuarios_telegram WHERE telegram_user_id = ? AND activo = 1 LIMIT 1;",
+                (telegram_user_id,),
+            ).fetchone()
+            if vinculo is None:
+                return
+
+            conexion.execute(
+                """
+                UPDATE usuarios_telegram
+                SET activo = 0,
+                    modificado_por = ?,
+                    modificado_en = ?
+                WHERE id = ?;
+                """,
+                (vinculo["usuario_id"], ahora, vinculo["id"]),
+            )
+    finally:
+        conexion.close()
+
+
 def obtener_solicitud_activa_por_telegram(telegram_user_id: str) -> sqlite3.Row | None:
     """Busca la solicitud activa (no finalizada) del usuario de Telegram, si existe.
 
@@ -73,6 +214,50 @@ def obtener_solicitud_activa_por_telegram(telegram_user_id: str) -> sqlite3.Row 
         ).fetchone()
     finally:
         conexion.close()
+
+
+def obtener_solicitud_en_carga_por_telegram(telegram_user_id: str) -> sqlite3.Row | None:
+    """Busca la solicitud del usuario de Telegram que todavía está cargando datos del lado del empleado, si existe.
+
+    Una solicitud está en carga cuando sigue en curso y su conversación se
+    encuentra en alguno de los pasos de relevamiento de datos (legajo,
+    categoría, fecha, monto o comprobante): en esos casos, cerrar la sesión
+    dejaría a la persona sin forma de continuar completándola.
+
+    A diferencia de obtener_solicitud_activa_por_telegram, esta función
+    excluye explícitamente las solicitudes derivadas a un supervisor: una vez
+    derivada, la solicitud ya no requiere ninguna acción de carga por parte
+    de la persona empleada, sino que queda a la espera de la revisión de otra
+    persona.
+    """
+    conexion = base_datos.obtener_conexion()
+    try:
+        return conexion.execute(
+            """
+            SELECT * FROM solicitudes
+            WHERE telegram_user_id = ?
+              AND estado_solicitud_codigo = ?
+              AND estado_conversacion_codigo IN (?, ?, ?, ?, ?)
+            ORDER BY creado_en DESC
+            LIMIT 1;
+            """,
+            (
+                telegram_user_id,
+                estados.ESTADO_SOLICITUD_EN_CURSO,
+                estados.ESTADO_CONVERSACION_ESPERANDO_LEGAJO,
+                estados.ESTADO_CONVERSACION_ESPERANDO_CATEGORIA,
+                estados.ESTADO_CONVERSACION_ESPERANDO_FECHA,
+                estados.ESTADO_CONVERSACION_ESPERANDO_MONTO,
+                estados.ESTADO_CONVERSACION_ESPERANDO_COMPROBANTE,
+            ),
+        ).fetchone()
+    finally:
+        conexion.close()
+
+
+def usuario_tiene_solicitud_en_carga(telegram_user_id: str) -> bool:
+    """Indica si la cuenta de Telegram tiene una solicitud activa que todavía está cargando datos."""
+    return obtener_solicitud_en_carga_por_telegram(telegram_user_id) is not None
 
 
 def crear_solicitud_inicial(telegram_user_id: str) -> sqlite3.Row:
@@ -116,10 +301,12 @@ def crear_solicitud_inicial(telegram_user_id: str) -> sqlite3.Row:
         conexion.close()
 
 
-def buscar_empleado_activo_por_legajo(legajo: str) -> sqlite3.Row | None:
-    """Busca un usuario empleado activo por legajo.
+def buscar_usuario_activo_por_legajo(legajo: str) -> sqlite3.Row | None:
+    """Busca un usuario activo por legajo, sin importar su rol.
 
-    Devuelve None si no existe, si está inactivo o si su rol no es Empleado.
+    Se utiliza para identificar a la persona que escribe al bot, ya sea
+    empleado o supervisor: cada rol continúa luego por un camino distinto.
+    Devuelve None si no existe ningún usuario activo con ese legajo.
     """
     conexion = base_datos.obtener_conexion()
     try:
@@ -128,10 +315,9 @@ def buscar_empleado_activo_por_legajo(legajo: str) -> sqlite3.Row | None:
             SELECT * FROM usuarios
             WHERE legajo = ?
               AND activo = 1
-              AND rol_codigo = ?
             LIMIT 1;
             """,
-            (legajo, estados.ROL_EMPLEADO),
+            (legajo,),
         ).fetchone()
     finally:
         conexion.close()
@@ -199,6 +385,23 @@ def cancelar_solicitud(solicitud_id: str, motivo: str) -> None:
                     solicitud_id,
                 ),
             )
+    finally:
+        conexion.close()
+
+
+def eliminar_solicitud(solicitud_id: str) -> None:
+    """Elimina una solicitud que todavía no llegó a identificar a su solicitante.
+
+    Se utiliza cuando, durante la validación del legajo, se descubre que
+    quien escribe es un supervisor: la solicitud creada al iniciar la
+    conversación nunca llegó a representar un pedido de reembolso real
+    (no tiene solicitante ni datos cargados), así que se elimina en lugar
+    de dejarla cancelada como un registro fantasma sin dueño.
+    """
+    conexion = base_datos.obtener_conexion()
+    try:
+        with conexion:
+            conexion.execute("DELETE FROM solicitudes WHERE id = ?;", (solicitud_id,))
     finally:
         conexion.close()
 
@@ -687,6 +890,24 @@ def fecha_pertenece_al_mes_corriente(fecha_gasto: date) -> bool:
     return fecha_gasto.year == hoy.year and fecha_gasto.month == hoy.month
 
 
+def _calcular_motivos_derivacion(categoria_gasto_codigo: int, monto: float, fecha_gasto: date, monto_maximo: float) -> list[str]:
+    """Evalúa de forma independiente los tres motivos que obligan a derivar una solicitud a supervisor.
+
+    Se utiliza tanto al resolver una solicitud recién cargada como al listar
+    las solicitudes pendientes de revisión, ya que estas últimas no
+    almacenan los motivos de derivación y deben recalcularse aplicando la
+    misma política vigente para la categoría del área.
+    """
+    motivos = []
+    if categoria_gasto_codigo == estados.CATEGORIA_GASTO_OTROS:
+        motivos.append(MOTIVO_DERIVACION_CATEGORIA_REVISION_MANUAL)
+    if monto > monto_maximo:
+        motivos.append(MOTIVO_DERIVACION_MONTO_SUPERA_LIMITE)
+    if not fecha_pertenece_al_mes_corriente(fecha_gasto):
+        motivos.append(MOTIVO_DERIVACION_FECHA_FUERA_DE_MES_CORRIENTE)
+    return motivos
+
+
 def aprobar_solicitud_automaticamente(solicitud_id: str) -> None:
     """Aprueba la solicitud automáticamente por cumplir con la política de gastos vigente.
 
@@ -806,13 +1027,9 @@ def validar_politica_y_resolver_solicitud(solicitud_id: str) -> str:
         )
 
     fecha_gasto = date.fromisoformat(solicitud["fecha_gasto"])
-    motivos_derivacion = []
-    if solicitud["categoria_gasto_codigo"] == estados.CATEGORIA_GASTO_OTROS:
-        motivos_derivacion.append(MOTIVO_DERIVACION_CATEGORIA_REVISION_MANUAL)
-    if solicitud["monto"] > politica["monto_maximo"]:
-        motivos_derivacion.append(MOTIVO_DERIVACION_MONTO_SUPERA_LIMITE)
-    if not fecha_pertenece_al_mes_corriente(fecha_gasto):
-        motivos_derivacion.append(MOTIVO_DERIVACION_FECHA_FUERA_DE_MES_CORRIENTE)
+    motivos_derivacion = _calcular_motivos_derivacion(
+        solicitud["categoria_gasto_codigo"], solicitud["monto"], fecha_gasto, politica["monto_maximo"]
+    )
 
     if not motivos_derivacion:
         aprobar_solicitud_automaticamente(solicitud_id)
@@ -831,3 +1048,160 @@ def validar_politica_y_resolver_solicitud(solicitud_id: str) -> str:
         solicitud_id, supervisor["id"], motivos_derivacion,
     )
     return construir_mensaje_derivacion(motivos_derivacion)
+
+
+MENSAJE_PENDIENTES_VACIO = "No hay solicitudes pendientes de revisión."
+
+CONSULTA_SOLICITUDES_PENDIENTES_REVISION = """
+    SELECT
+        solicitud.id AS id,
+        solicitud.categoria_gasto_codigo AS categoria_gasto_codigo,
+        solicitud.fecha_gasto AS fecha_gasto,
+        solicitud.monto AS monto,
+        solicitante.legajo AS legajo,
+        solicitante.nombre AS nombre,
+        solicitante.apellido AS apellido,
+        area.descripcion AS area_descripcion,
+        categoria.descripcion AS categoria_descripcion,
+        politica.monto_maximo AS monto_maximo
+    FROM solicitudes AS solicitud
+    JOIN usuarios AS solicitante ON solicitante.id = solicitud.solicitante_id
+    JOIN lookup_areas AS area ON area.codigo = solicitante.area_codigo
+    JOIN lookup_categorias_gasto AS categoria ON categoria.codigo = solicitud.categoria_gasto_codigo
+    JOIN politicas_gastos AS politica
+        ON politica.area_codigo = solicitante.area_codigo
+       AND politica.categoria_gasto_codigo = solicitud.categoria_gasto_codigo
+       AND politica.activo = 1
+    WHERE solicitud.estado_solicitud_codigo = ?
+      AND solicitud.estado_conversacion_codigo = ?
+    ORDER BY solicitud.creado_en;
+"""
+
+
+def construir_mensaje_pendientes_revision() -> str:
+    """Arma el mensaje con el listado de solicitudes pendientes de revisión, identificadas por legajo.
+
+    Los motivos de derivación no se almacenan en la solicitud, así que se
+    recalculan aplicando la misma política vigente para el área y la
+    categoría de cada solicitud, igual que al momento de derivarla.
+    """
+    conexion = base_datos.obtener_conexion()
+    try:
+        filas = conexion.execute(
+            CONSULTA_SOLICITUDES_PENDIENTES_REVISION,
+            (estados.ESTADO_SOLICITUD_DERIVADA_SUPERVISOR, estados.ESTADO_CONVERSACION_ESPERANDO_REVISION_SUPERVISOR),
+        ).fetchall()
+    finally:
+        conexion.close()
+
+    if not filas:
+        return MENSAJE_PENDIENTES_VACIO
+
+    bloques = []
+    for fila in filas:
+        fecha_gasto = date.fromisoformat(fila["fecha_gasto"])
+        motivos = _calcular_motivos_derivacion(fila["categoria_gasto_codigo"], fila["monto"], fecha_gasto, fila["monto_maximo"])
+        lista_motivos = "\n".join(f"- {motivo}" for motivo in motivos)
+        bloques.append(
+            f"Legajo: {fila['legajo']}\n"
+            f"Empleado: {fila['nombre']} {fila['apellido']}\n"
+            f"Área: {fila['area_descripcion']}\n"
+            f"Categoría: {fila['categoria_descripcion']}\n"
+            f"Fecha: {fecha_gasto.strftime('%d/%m/%Y')}\n"
+            f"Monto: ${fila['monto']:.2f}\n"
+            "Motivos de derivación:\n"
+            f"{lista_motivos}"
+        )
+
+    return "Solicitudes pendientes de revisión:\n\n" + "\n\n".join(bloques)
+
+
+def buscar_solicitudes_pendientes_por_legajo(legajo: str) -> list[sqlite3.Row]:
+    """Busca las solicitudes pendientes de revisión del supervisor para un legajo de empleado.
+
+    Devuelve todas las coincidencias para que quien llama pueda distinguir
+    entre no encontrar ninguna, encontrar una sola (caso resoluble) o
+    encontrar más de una (caso ambiguo que no se resuelve automáticamente).
+    """
+    conexion = base_datos.obtener_conexion()
+    try:
+        return conexion.execute(
+            """
+            SELECT solicitud.*
+            FROM solicitudes AS solicitud
+            JOIN usuarios AS solicitante ON solicitante.id = solicitud.solicitante_id
+            WHERE solicitante.legajo = ?
+              AND solicitud.estado_solicitud_codigo = ?
+              AND solicitud.estado_conversacion_codigo = ?
+            ORDER BY solicitud.creado_en;
+            """,
+            (legajo, estados.ESTADO_SOLICITUD_DERIVADA_SUPERVISOR, estados.ESTADO_CONVERSACION_ESPERANDO_REVISION_SUPERVISOR),
+        ).fetchall()
+    finally:
+        conexion.close()
+
+
+def aprobar_solicitud_por_supervisor(solicitud_id: str, supervisor_id: str) -> None:
+    """Aprueba una solicitud derivada, según la decisión manual de un supervisor.
+
+    No queda nadie asignado porque la revisión ya concluyó, y se limpia
+    cualquier motivo de rechazo previo, ya que la solicitud fue aceptada.
+    """
+    ahora = _ahora()
+    conexion = base_datos.obtener_conexion()
+    try:
+        with conexion:
+            conexion.execute(
+                """
+                UPDATE solicitudes
+                SET estado_solicitud_codigo = ?,
+                    estado_conversacion_codigo = ?,
+                    usuario_asignado_id = NULL,
+                    motivo_rechazo = NULL,
+                    modificado_por = ?,
+                    modificado_en = ?
+                WHERE id = ?;
+                """,
+                (
+                    estados.ESTADO_SOLICITUD_APROBADA,
+                    estados.ESTADO_CONVERSACION_FINALIZADO,
+                    supervisor_id,
+                    ahora,
+                    solicitud_id,
+                ),
+            )
+    finally:
+        conexion.close()
+
+
+def rechazar_solicitud_por_supervisor(solicitud_id: str, supervisor_id: str, motivo_rechazo: str) -> None:
+    """Rechaza una solicitud derivada, según la decisión manual de un supervisor, registrando el motivo informado.
+
+    No queda nadie asignado porque la revisión ya concluyó.
+    """
+    ahora = _ahora()
+    conexion = base_datos.obtener_conexion()
+    try:
+        with conexion:
+            conexion.execute(
+                """
+                UPDATE solicitudes
+                SET estado_solicitud_codigo = ?,
+                    estado_conversacion_codigo = ?,
+                    usuario_asignado_id = NULL,
+                    motivo_rechazo = ?,
+                    modificado_por = ?,
+                    modificado_en = ?
+                WHERE id = ?;
+                """,
+                (
+                    estados.ESTADO_SOLICITUD_RECHAZADA,
+                    estados.ESTADO_CONVERSACION_FINALIZADO,
+                    motivo_rechazo,
+                    supervisor_id,
+                    ahora,
+                    solicitud_id,
+                ),
+            )
+    finally:
+        conexion.close()

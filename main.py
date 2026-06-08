@@ -103,6 +103,10 @@ def main() -> None:
     aplicacion.add_handler(CommandHandler("start", manejadores_bot.manejar_start))
     aplicacion.add_handler(CommandHandler("ayuda", manejadores_bot.manejar_ayuda))
     aplicacion.add_handler(CommandHandler("cancelar", manejadores_bot.manejar_cancelar))
+    aplicacion.add_handler(CommandHandler("pendientes", manejadores_bot.manejar_pendientes))
+    aplicacion.add_handler(CommandHandler("aprobar", manejadores_bot.manejar_aprobar))
+    aplicacion.add_handler(CommandHandler("rechazar", manejadores_bot.manejar_rechazar))
+    aplicacion.add_handler(CommandHandler("finalizar", manejadores_bot.manejar_finalizar))
     aplicacion.add_handler(
         MessageHandler(~filters.COMMAND, manejadores_bot.manejar_mensaje)
     )

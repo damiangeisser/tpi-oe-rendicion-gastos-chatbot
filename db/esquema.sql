@@ -131,6 +131,31 @@ CREATE TABLE IF NOT EXISTS usuarios (
 );
 
 -- ============================================================
+-- VÍNCULOS DE IDENTIDAD CON TELEGRAM
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS usuarios_telegram (
+    id TEXT PRIMARY KEY,
+
+    usuario_id TEXT NOT NULL,
+    telegram_user_id TEXT NOT NULL,
+
+    activo INTEGER NOT NULL DEFAULT 1 CHECK (activo IN (0, 1)),
+
+    creado_por TEXT,
+    modificado_por TEXT,
+    creado_en TEXT NOT NULL,
+    modificado_en TEXT NOT NULL,
+
+    UNIQUE (usuario_id),
+    UNIQUE (telegram_user_id),
+
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
+    FOREIGN KEY (creado_por) REFERENCES usuarios(id),
+    FOREIGN KEY (modificado_por) REFERENCES usuarios(id)
+);
+
+-- ============================================================
 -- POLÍTICAS DE GASTOS
 -- ============================================================
 
