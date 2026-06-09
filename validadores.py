@@ -35,9 +35,14 @@ def validar_fecha_gasto(texto_fecha: str) -> date:
         raise ValueError("El formato de la fecha no es válido. Ingresela en formato DD/MM/AAAA.")
 
     try:
-        return datetime.strptime(texto_fecha, "%d/%m/%Y").date()
+        fecha = datetime.strptime(texto_fecha, "%d/%m/%Y").date()
     except ValueError as error:
         raise ValueError("La fecha ingresada no existe en el calendario. Ingresela en formato DD/MM/AAAA.") from error
+
+    if fecha > date.today():
+        raise ValueError("La fecha del gasto no puede ser una fecha futura.")
+
+    return fecha
 
 
 def validar_monto_gasto(texto_monto: str) -> float:

@@ -115,10 +115,6 @@ MENSAJE_PEDIR_FECHA = "Ingresá la fecha del gasto en formato DD/MM/AAAA."
 
 MENSAJE_FECHA_REGISTRADA = "Fecha registrada: {fecha}."
 
-MENSAJE_FECHA_INVALIDA_REINTENTAR = (
-    "La fecha ingresada no es válida. Usá el formato DD/MM/AAAA. Intentos restantes: {restantes}."
-)
-
 MENSAJE_SOLICITUD_CANCELADA_POR_INTENTOS_FECHA = (
     "La solicitud fue cancelada porque se alcanzó la cantidad máxima de intentos para ingresar una fecha válida."
 )
@@ -127,20 +123,11 @@ MENSAJE_PEDIR_MONTO = "Ingresá el monto del gasto."
 
 MENSAJE_MONTO_REGISTRADO = "Monto registrado: ${monto}."
 
-MENSAJE_MONTO_INVALIDO_REINTENTAR = (
-    "El monto ingresado no es válido. Ingresá un número positivo. Intentos restantes: {restantes}."
-)
-
 MENSAJE_SOLICITUD_CANCELADA_POR_INTENTOS_MONTO = (
     "La solicitud fue cancelada porque se alcanzó la cantidad máxima de intentos para ingresar un monto válido."
 )
 
 MENSAJE_PEDIR_COMPROBANTE = "Enviá el comprobante del gasto en formato JPG."
-
-MENSAJE_COMPROBANTE_INVALIDO_REINTENTAR = (
-    "El comprobante no es válido. Tenés que enviar un archivo JPG que no supere el tamaño máximo permitido. "
-    "Intentos restantes: {restantes}."
-)
 
 MENSAJE_SOLICITUD_CANCELADA_POR_INTENTOS_COMPROBANTE = (
     "La solicitud fue cancelada porque se alcanzó la cantidad máxima de intentos para enviar un comprobante válido."
@@ -329,10 +316,11 @@ async def _procesar_legajo(update: Update, solicitud) -> None:
 async def _procesar_fecha(update: Update, solicitud) -> None:
     """Valida la fecha del gasto recibida y avanza, reintenta o cancela la solicitud según el resultado.
 
-    La validación realizada acá se limita al formato y a que la fecha exista
-    en el calendario. Las reglas de negocio sobre qué fechas son aceptables
-    (por ejemplo, que correspondan al mes en curso) se aplican más adelante,
-    durante la validación de la política de gastos. Cualquier mensaje que no
+    La validación realizada acá cubre el formato, la existencia de la fecha en
+    el calendario y que no sea futura. Las reglas de negocio adicionales sobre
+    qué fechas son aceptables (por ejemplo, que correspondan al mes en curso)
+    se aplican más adelante, durante la validación de la política de gastos.
+    Cualquier mensaje que no
     sea de texto (foto, sticker, etc.) se trata como una fecha vacía, lo que
     cuenta como un intento inválido más, con la misma lógica de reintentos.
     """
@@ -341,7 +329,7 @@ async def _procesar_fecha(update: Update, solicitud) -> None:
 
     try:
         fecha_gasto = validadores.validar_fecha_gasto(texto_fecha)
-    except ValueError:
+    except ValueError as error:
         intentos = servicios.incrementar_intentos_fecha(solicitud["id"])
 
         if intentos >= estados.MAX_INTENTOS_VALIDACION:
@@ -350,7 +338,7 @@ async def _procesar_fecha(update: Update, solicitud) -> None:
             return
 
         restantes = estados.MAX_INTENTOS_VALIDACION - intentos
-        await mensaje.reply_text(MENSAJE_FECHA_INVALIDA_REINTENTAR.format(restantes=restantes))
+        await mensaje.reply_text(f"{error} Intentos restantes: {restantes}.")
         return
 
     servicios.registrar_fecha_solicitud(solicitud["id"], fecha_gasto)
@@ -373,7 +361,7 @@ async def _procesar_monto(update: Update, solicitud) -> None:
 
     try:
         monto = validadores.validar_monto_gasto(texto_monto)
-    except ValueError:
+    except ValueError as error:
         intentos = servicios.incrementar_intentos_monto(solicitud["id"])
 
         if intentos >= estados.MAX_INTENTOS_VALIDACION:
@@ -382,7 +370,7 @@ async def _procesar_monto(update: Update, solicitud) -> None:
             return
 
         restantes = estados.MAX_INTENTOS_VALIDACION - intentos
-        await mensaje.reply_text(MENSAJE_MONTO_INVALIDO_REINTENTAR.format(restantes=restantes))
+        await mensaje.reply_text(f"{error} Intentos restantes: {restantes}.")
         return
 
     servicios.registrar_monto_solicitud(solicitud["id"], monto)
@@ -445,7 +433,7 @@ async def _procesar_comprobante(update: Update, solicitud) -> None:
 
     try:
         comprobante_file_id = _validar_comprobante_recibido(mensaje)
-    except ValueError:
+    except ValueError as error:
         intentos = servicios.incrementar_intentos_comprobante(solicitud["id"])
 
         if intentos >= estados.MAX_INTENTOS_VALIDACION:
@@ -454,7 +442,7 @@ async def _procesar_comprobante(update: Update, solicitud) -> None:
             return
 
         restantes = estados.MAX_INTENTOS_VALIDACION - intentos
-        await mensaje.reply_text(MENSAJE_COMPROBANTE_INVALIDO_REINTENTAR.format(restantes=restantes))
+        await mensaje.reply_text(f"{error} Intentos restantes: {restantes}.")
         return
 
     servicios.registrar_comprobante_solicitud(solicitud["id"], comprobante_file_id)

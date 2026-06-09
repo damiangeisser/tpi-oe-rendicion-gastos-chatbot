@@ -29,12 +29,6 @@ Reporte CSV de referencia:
 exportaciones/reporte_solicitudes_YYYYMMDD_HHMMSS.csv
 ```
 
-Reemplazar el nombre anterior por el archivo generado efectivamente:
-
-```text
-Reporte utilizado: exportaciones/reporte_solicitudes_________________.csv
-```
-
 Capturas asociadas:
 
 ```text
@@ -539,7 +533,7 @@ Verificar el control de intentos en la carga de fecha.
 
 ```text
 Captura: pruebas/evidencia_CP_10
-CSV: reporte_solicitudes_20260608_202136.csv
+CSV: reporte_solicitudes_20260609_073152.csv
 ```
 
 ---
@@ -588,7 +582,7 @@ Verificar el control de intentos en la carga de monto.
 
 ```text
 Captura: pruebas/evidencia_CP_11
-CSV: reporte_solicitudes_20260608_202633.csv
+CSV: reporte_solicitudes_20260609_073720.csv
 ```
 
 ---
@@ -639,15 +633,15 @@ Verificar el control de intentos en la carga de comprobante.
 
 ```text
 Captura: pruebas/evidencia_CP_12
-CSV: reporte_solicitudes_20260608_203831.csv
+CSV: reporte_solicitudes_20260609_074143.csv
 ```
 
 ---
 
-## CP-13 - Archivo no JPG
+## CP-13 - Fecha futura
 
 **Objetivo:**  
-Verificar que el sistema rechace comprobantes que no cumplan con el formato JPG/JPEG.
+Verificar que el sistema rechace fechas futuras.
 
 **Datos utilizados:**
 
@@ -655,31 +649,27 @@ Verificar que el sistema rechace comprobantes que no cumplan con el formato JPG/
 |---|---|
 | Legajo | E1001 |
 | Categoría | Transporte |
-| Fecha | Fecha válida |
-| Monto | Monto válido |
-| Archivo | PDF o PNG |
+| Fecha inválida| Fecha futura |
 
 **Pasos:**
 
 1. Enviar `/start`.
 2. Ingresar `E1001`.
 3. Seleccionar `Transporte`.
-4. Ingresar fecha válida.
-5. Ingresar monto válido.
-6. Enviar un archivo que no sea JPG/JPEG.
+4. Ingresar fecha futura.
 
 **Resultado esperado:**
 
-- El sistema rechaza el archivo.
-- El sistema solicita reenviar un comprobante JPG válido.
-- Se incrementa `intentos_comprobante`.
+- El sistema rechaza la fecha.
+- El sistema solicita reenviar una fecha que no sea futura.
+- Se incrementa `intentos_fecha`.
 
 **Resultado obtenido:**
 
 ```text
-- El sistema rechaza el archivo.
-- El sistema solicita reenviar un comprobante JPG válido.
-- Se incrementa `intentos_comprobante`.
+- El sistema rechaza la fecha.
+- El sistema solicita reenviar una fecha que no sea futura.
+- Se incrementa `intentos_fecha`.
 ```
 
 **Estado de la prueba:** Completada.
@@ -688,7 +678,7 @@ Verificar que el sistema rechace comprobantes que no cumplan con el formato JPG/
 
 ```text
 Captura: pruebas/evidencia_CP_13
-CSV: reporte_solicitudes_20260608_204404.csv
+CSV: reporte_solicitudes_20260609_074844.csv
 ```
 
 ---
@@ -791,7 +781,7 @@ Verificar que el bot maneje entradas no esperadas sin romper el flujo.
 
 ```text
 Captura: pruebas/evidencia_CP_15
-CSV: reporte_solicitudes_20260608_210704.csv
+CSV: reporte_solicitudes_20260609_083458.csv
 ```
 
 ---
@@ -893,28 +883,28 @@ Completar luego de ejecutar las pruebas.
 
 | ID | Caso | Estado | Evidencia |
 |---|---|---|---|
-| CP-01 | Aprobación automática | Pendiente | |
-| CP-02 | Derivación por categoría Otros | Pendiente | |
-| CP-03 | Derivación por monto excedido | Pendiente | |
-| CP-04 | Derivación por fecha fuera del mes corriente | Pendiente | |
-| CP-05 | Derivación por múltiples motivos | Pendiente | |
-| CP-06 | Supervisor aprueba solicitud derivada | Pendiente | |
-| CP-07 | Supervisor rechaza solicitud derivada | Pendiente | |
-| CP-08 | Legajo inexistente | Pendiente | |
-| CP-09 | Usuario inactivo | Pendiente | |
-| CP-10 | Fecha inválida hasta cancelar | Pendiente | |
-| CP-11 | Monto inválido hasta cancelar | Pendiente | |
-| CP-12 | Comprobante inválido hasta cancelar | Pendiente | |
-| CP-13 | Archivo no JPG | Pendiente | |
-| CP-14 | Categoría no permitida para el área | Pendiente | |
-| CP-15 | Mensajes inesperados durante el flujo | Pendiente | |
-| CP-16 | Cancelación manual durante la carga | Pendiente | |
-| CP-17 | Finalizar sesión y cambiar de usuario | Pendiente | |
+| CP-01 | Aprobación automática | Completada | reporte_solicitudes_20260608_191042.csv |
+| CP-02 | Derivación por categoría Otros | Completada | reporte_solicitudes_20260608_191428.csv |
+| CP-03 | Derivación por monto excedido | Completada | reporte_solicitudes_20260608_192104.csv |
+| CP-04 | Derivación por fecha fuera del mes corriente | Completada | reporte_solicitudes_20260608_192810.csv |
+| CP-05 | Derivación por múltiples motivos | Completada | reporte_solicitudes_20260608_193418.csv |
+| CP-06 | Supervisor aprueba solicitud derivada | Completada | reporte_solicitudes_20260608_194658.csv |
+| CP-07 | Supervisor rechaza solicitud derivada | Completada | reporte_solicitudes_20260608_195647.csv |
+| CP-08 | Legajo inexistente | Completada | reporte_solicitudes_20260608_195647.csv |
+| CP-09 | Usuario inactivo | Completada | reporte_solicitudes_20260608_201742.csv |
+| CP-10 | Fecha inválida hasta cancelar | Completada | reporte_solicitudes_20260609_073152.csv |
+| CP-11 | Monto inválido hasta cancelar | Completada | reporte_solicitudes_20260609_073720.csv |
+| CP-12 | Comprobante inválido hasta cancelar | Completada | reporte_solicitudes_20260609_074143.csv |
+| CP-13 | Fecha futura | Completada | reporte_solicitudes_20260609_074844.csv |
+| CP-14 | Categoría no permitida para el área | Completada | reporte_solicitudes_20260608_204806.csv |
+| CP-15 | Mensajes inesperados durante el flujo | Completada | reporte_solicitudes_20260609_083458.csv |
+| CP-16 | Cancelación manual durante la carga | Completada | reporte_solicitudes_20260608_211332.csv |
+| CP-17 | Finalizar sesión y cambiar de usuario | Completada | reporte_solicitudes_20260608_211942.csv |
 
 ---
 
 ## 5. Observaciones generales
 
 ```text
-Pendiente de completar luego de ejecutar las pruebas.
+Las pruebas permitieron detectar algunas inconsistencias en la aplicación. Las mismas fueron corregidas.
 ```
