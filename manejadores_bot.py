@@ -96,7 +96,10 @@ MENSAJE_LEGAJO_INVALIDO = (
 
 MENSAJE_LEGAJO_VALIDO = "¡Hola, {nombre} {apellido}! Validamos tu legajo correctamente."
 
-MENSAJE_LEGAJO_DEBE_SER_TEXTO = "Ingresá tu legajo como texto."
+MENSAJE_LEGAJO_DEBE_SER_TEXTO = (
+    "El legajo debe ser un texto. La solicitud fue cancelada. "
+    "Si querés iniciar una nueva, enviá /start."
+)
 
 MENSAJE_PEDIR_CATEGORIA = "Elegí la categoría del gasto que querés rendir:"
 
@@ -574,6 +577,10 @@ async def manejar_mensaje(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     if estado_conversacion == estados.ESTADO_CONVERSACION_ESPERANDO_LEGAJO:
         await _procesar_legajo(update, solicitud)
+        return
+
+    if estado_conversacion == estados.ESTADO_CONVERSACION_ESPERANDO_CATEGORIA:
+        await _solicitar_categoria(update)
         return
 
     if estado_conversacion == estados.ESTADO_CONVERSACION_ESPERANDO_FECHA:
